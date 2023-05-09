@@ -15,8 +15,8 @@ from database.database import session
 PATH = ChromeDriverManager().install()  # instala driver de chrome
 
 
-class SupCarr(Base):  # Supermercado Carrefour
-    __tablename__ = 'supcarr'
+class SupAlca(Base):  # Supermercado Carrefour
+    __tablename__ = 'supalca'
     id = Column(Integer, primary_key=True)
     product_name = Column(String(255))
     price_num = Column(Float)
@@ -24,7 +24,7 @@ class SupCarr(Base):  # Supermercado Carrefour
     product_url = Column(String(255))
 
     ean_id = Column(BigInteger, ForeignKey("products.ean"))
-    supcarr = relationship("Products")
+    supalca = relationship("Products")
 
     def __str__(self):
         return f"id= {self.id} - name= {self.name}"
@@ -34,8 +34,8 @@ class SupCarr(Base):  # Supermercado Carrefour
 
 
     @classmethod
-    def offs_save_product_carr(cls, db: Session, ean: str, product_name: str, price_num: float, price_simbol: str, product_url: str):
-        supcarr = SupCarr(
+    def offs_save_product_alca(cls, db: Session, ean: str, product_name: str, price_num: float, price_simbol: str, product_url: str):
+        supalca = SupAlca(
             ean_id=ean,
             product_name=product_name,
             price_num=price_num,
@@ -43,12 +43,12 @@ class SupCarr(Base):  # Supermercado Carrefour
             product_url=product_url
         )
 
-        db.add(supcarr)
+        db.add(supalca)
         db.commit()
         db.close()
 
     @classmethod
-    def extract_data(cls,db: Session, ean: str):
+    def extract_data(cls, db: Session, ean: str):
         # opciones del driver
         opciones = Options()
 
@@ -63,51 +63,45 @@ class SupCarr(Base):  # Supermercado Carrefour
         # Abre una ventana de chrome
         driver = webdriver.Chrome(PATH, options=opciones)
 
-        driver.get(f'https://www.carrefour.es/?q={ean}')
+        driver.get(f'https://www.alcampo.es/compra-online/search/?department=&text={ean}')
 
-        time.sleep(4)
+        time.sleep(3)
 
-        price = driver.find_element(By.CLASS_NAME, "ebx-result-price__value")
-
+        price = driver.find_element(By.CLASS_NAME, "long-price")
         price_num_str = price.text.strip().split()[0]
         price_num = float(price_num_str.replace(',', '.'))
         price_simbol = price.text.strip().split()[1]
 
         # Devuelve el nombre
-        name = driver.find_element(By.CLASS_NAME, "ebx-result-title")
+        name = driver.find_element(By.CLASS_NAME, "productName")
         name = name.text.strip()
 
         # Devuelve la url del producto
-        product_url = driver.find_element(By.CLASS_NAME, "ebx-result-link").get_attribute('href')
+        product_url = driver.find_element(By.CLASS_NAME, "productMainLink").get_attribute('href')
 
         if driver:
-            cls.offs_save_product_carr(db, ean, name, price_num, price_simbol, product_url)
+            cls.offs_save_product_alca(db, ean, name, price_num, price_simbol, product_url)
             return True
         return False
 
     @classmethod
-    def supcarr_extract_price(cls, db: Session, barcode):
+    def supalca_extract_price(cls, db: Session, barcode):
         try:
-            reg = SupCarr.extract_data(session, barcode)
+            reg = SupAlca.extract_data(session, barcode)
             if reg:
                 product = session.query(Products).filter_by(ean=barcode).first()
-                product.shop = func.concat(product.shop, 'Carrefour')
+                product.shop = func.concat(product.shop, 'alcampo')
                 try:
                     # Confirmar los cambios en la sesión
                     session.commit()
-                    print('Valor actualizado exitosamente en Carrefour.')
+                    print('Valor actualizado exitosamente en Alcampo.')
                 except InvalidRequestError as e:
                     # Manejar errores
                     session.rollback()
                     print(f'Error al actualizar el valor: {str(e)}')
             else:
-                print('No está en Carrefour')
+                print('No está en Alcampo')
 
         except Exception as e:
-            print('No lo registro en Carrefour')
+            print('No lo registro en Alcampo')
             print(e)
-
-
-
-
-

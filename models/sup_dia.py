@@ -4,6 +4,10 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.orm import Session
 import requests as req
 from bs4 import BeautifulSoup as bs
+from sqlalchemy.exc import InvalidRequestError
+from sqlalchemy.sql.expression import func
+from models.products import Products
+from database.database import session
 
 
 class SupDia(Base):  # Supermercado Día
@@ -64,4 +68,26 @@ class SupDia(Base):  # Supermercado Día
             cls.offs_save_product_dia(db, ean, name, price_num, price_simbol, product_url)
             return True
         return False
+
+    @classmethod
+    def supdia_extract_price(cls, db: Session, barcode):
+        try:
+            reg = SupDia.extract_data(session, barcode)
+            if reg:
+                product = session.query(Products).filter_by(ean=barcode).first()
+                product.shop = func.concat(product.shop, 'dia')
+                try:
+                    # Confirmar los cambios en la sesión
+                    session.commit()
+                    print('Valor actualizado exitosamente en Día.')
+                except InvalidRequestError as e:
+                    # Manejar errores
+                    session.rollback()
+                    print(f'Error al actualizar el valor: {str(e)}')
+            else:
+                print('No está en día')
+
+        except Exception as e:
+            print('No lo registro en Día')
+            print(e)
 

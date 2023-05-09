@@ -13,7 +13,6 @@ class Products(Base):
     image = Column(String(10000))
     nutriscore = Column(String)
 
-
     def __str__(self):
         return f"id= {self.id} - name= {self.name}"
 
@@ -42,3 +41,7 @@ class Products(Base):
             cls.offs_save_product(db, product_data)
             return True
         return False
+
+    @classmethod
+    def check_ean_exists(cls, db: Session, ean: str) -> bool:
+        return db.query(Products).filter_by(ean=ean).first() is not None

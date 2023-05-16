@@ -25,7 +25,6 @@ class Products(Base):
             ean=product_data['code'],
             name=product_data['product_name'],
             brand=product_data['brands'],
-            shop=product_data['stores'],
             image=product_data['image_url'],
             nutriscore=product_data['nutriscore_grade']
         )
@@ -45,3 +44,21 @@ class Products(Base):
     @classmethod
     def check_ean_exists(cls, db: Session, ean: str) -> bool:
         return db.query(Products).filter_by(ean=ean).first() is not None
+
+    @classmethod
+    def get_product_by_name(cls, db: Session, name: str):
+        product = db.query(Products).filter(Products.name == name).first()
+        return product
+
+    @classmethod
+    def get_product_by_barcode(cls, db: Session, ean: int):
+        product = db.query(Products).filter(Products.ean == ean).first()
+        return product
+
+    # @classmethod
+    # def put_in_nevera(cls, db: Session, ean: int):
+    #     product = db.query(Products).filter(Products.ean == ean).first()
+    #     new_product = Nevera()
+    #     new_product.ean_id = product.ean
+
+

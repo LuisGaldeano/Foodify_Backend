@@ -6,5 +6,5 @@ __pycache__
 otros
 pruebas.py
 cookies
-models/nevera.py
-models/lista_compra.py
+models/fridge.py
+models/shopping_list.py

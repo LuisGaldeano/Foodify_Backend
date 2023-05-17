@@ -1,8 +1,9 @@
 from database.database import Base
 from sqlalchemy import Column, Integer, String, BigInteger
-from sqlalchemy.orm import Session
 import openfoodfacts as offs
 
+log.configure_logging()
+logger = logging.getLogger(__name__)
 
 class Products(Base):
     __tablename__ = 'products'
@@ -20,7 +21,7 @@ class Products(Base):
         return f"<{str(self)}>"
 
     @classmethod
-    def offs_save_product(cls, db: Session, product_data: dict):
+    def offs_save_product(cls, product_data: dict):
         product = Products(
             ean=product_data['code'],
             name=product_data['product_name'],
@@ -29,15 +30,15 @@ class Products(Base):
             nutriscore=product_data['nutriscore_grade']
         )
 
-        db.add(product)
-        db.commit()
-        db.close()
+        session.add(product)
+        session.commit()
+        session.close()
 
     @classmethod
     def get_product_and_save(cls, db: Session, barcode: str):
         product_data = offs.products.get_product(barcode)['product']
         if product_data:
-            cls.offs_save_product(db, product_data)
+            cls.offs_save_product(product_data)
             return True
         return False
 
@@ -46,19 +47,13 @@ class Products(Base):
         return db.query(Products).filter_by(ean=ean).first() is not None
 
     @classmethod
-    def get_product_by_name(cls, db: Session, name: str):
-        product = db.query(Products).filter(Products.name == name).first()
+    def get_product_by_name(cls, name: str):
+        product = session.query(Products).filter(Products.name == name).first()
         return product
 
     @classmethod
-    def get_product_by_barcode(cls, db: Session, ean: int):
-        product = db.query(Products).filter(Products.ean == ean).first()
+    def get_product_by_barcode(cls, ean: int):
+        product = session.query(Products).filter(Products.ean == ean).first()
         return product
-
-    # @classmethod
-    # def put_in_nevera(cls, db: Session, ean: int):
-    #     product = db.query(Products).filter(Products.ean == ean).first()
-    #     new_product = Nevera()
-    #     new_product.ean_id = product.ean
 
 

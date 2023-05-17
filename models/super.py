@@ -1,7 +1,6 @@
 from database.database import Base
 from sqlalchemy import Column, Integer, String, ForeignKey, BigInteger, Float, DateTime
 from sqlalchemy.orm import relationship
-from sqlalchemy.orm import Session
 from selenium import webdriver
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.by import By
@@ -10,6 +9,10 @@ from bs4 import BeautifulSoup as bs
 import requests as req
 from selenium.webdriver.chrome.options import Options
 from datetime import datetime
+from models import Products
+
+log.configure_logging()
+logger = logging.getLogger(__name__)
 
 PATH = ChromeDriverManager().install()  # instala driver de chrome
 
@@ -34,8 +37,8 @@ class Supermercado(Base):  # Supermercado Día
         return f"<{str(self)}>"
 
     @classmethod
-    def save_product_dia(cls, db: Session, ean: str, product_name: str, price_num: float, price_simbol: str,
-                              product_url: str):
+    def save_product_dia(cls, ean: str, product_name: str, price_num: float, price_simbol: str,
+                         product_url: str):
         supdia = Supermercado(
             ean_id=ean,
             product_name=product_name,
@@ -46,12 +49,12 @@ class Supermercado(Base):  # Supermercado Día
 
         )
 
-        db.add(supdia)
-        db.commit()
-        db.close()
+        session.add(supdia)
+        session.commit()
+        session.close()
 
     @classmethod
-    def extract_data_dia(cls, db: Session, ean: str):
+    def extract_data_dia(cls, ean: str):
         URL = 'https://www.dia.es/compra-online/search?text='
 
         html = req.get(URL + ean).text
@@ -74,21 +77,21 @@ class Supermercado(Base):  # Supermercado Día
         product_url = f'https://www.dia.es{product_href}'
 
         if sopa:
-            cls.save_product_dia(db, ean, name, price_num, price_simbol, product_url)
+            cls.save_product_dia(ean, name, price_num, price_simbol, product_url)
             return True
         return False
 
     @classmethod
-    def extract_price_dia(cls, db: Session, barcode):
+    def extract_price_dia(cls, barcode):
         try:
-            Supermercado.extract_data_dia(db, barcode)
+            Supermercado.extract_data_dia(barcode)
             return True
         except Exception as e:
-            print('Este producto no se vende en Dia')
+            logger.exception('Este producto no se vende en Dia')
             return False
 
     @classmethod
-    def save_product_carrefour(cls, db: Session, ean: str, product_name: str, price_num: float, price_simbol: str,
+    def save_product_carrefour(cls, ean: str, product_name: str, price_num: float, price_simbol: str,
                                product_url: str):
         supcarr = Supermercado(
             ean_id=ean,
@@ -99,13 +102,12 @@ class Supermercado(Base):  # Supermercado Día
             super='Carrefour'
         )
 
-        db.add(supcarr)
-        db.commit()
-        db.close()
-
+        session.add(supcarr)
+        session.commit()
+        session.close()
 
     @classmethod
-    def extract_data_carrefour(cls, db: Session, ean: str):
+    def extract_data_carrefour(cls, ean: str):
         # opciones del driver
         opciones = Options()
 
@@ -122,7 +124,7 @@ class Supermercado(Base):  # Supermercado Día
 
         driver.get(f'https://www.carrefour.es/?q={ean}')
 
-        time.sleep(4)
+        time.sleep(3)
 
         price = driver.find_element(By.CLASS_NAME, "ebx-result-price__value")
 
@@ -138,22 +140,22 @@ class Supermercado(Base):  # Supermercado Día
         product_url = driver.find_element(By.CLASS_NAME, "ebx-result-link").get_attribute('href')
 
         if driver:
-            cls.save_product_carrefour(db, ean, name, price_num, price_simbol, product_url)
+            cls.save_product_carrefour(ean, name, price_num, price_simbol, product_url)
             return True
         return False
 
     @classmethod
-    def extract_price_carrefour(cls, db: Session, barcode):
+    def extract_price_carrefour(cls, barcode):
         try:
-            Supermercado.extract_data_carrefour(db, barcode)
+            Supermercado.extract_data_carrefour(barcode)
             return True
         except Exception as e:
-            print('Este producto no se vende en Carrefour')
+            logger.info('Este producto no se vende en Carrefour')
             return False
 
     @classmethod
-    def save_product_alcampo(cls, db: Session, ean: str, product_name: str, price_num: float, price_simbol: str,
-                               product_url: str):
+    def save_product_alcampo(cls, ean: str, product_name: str, price_num: float, price_simbol: str,
+                             product_url: str):
         supalca = Supermercado(
             ean_id=ean,
             product_name=product_name,
@@ -163,12 +165,12 @@ class Supermercado(Base):  # Supermercado Día
             super='Alcampo'
         )
 
-        db.add(supalca)
-        db.commit()
-        db.close()
+        session.add(supalca)
+        session.commit()
+        session.close()
 
     @classmethod
-    def extract_data_alcampo(cls, db: Session, ean: str):
+    def extract_data_alcampo(cls, ean: str):
         # opciones del driver
         opciones = Options()
 
@@ -200,15 +202,31 @@ class Supermercado(Base):  # Supermercado Día
         product_url = driver.find_element(By.CLASS_NAME, "productMainLink").get_attribute('href')
 
         if driver:
-            cls.save_product_alcampo(db, ean, name, price_num, price_simbol, product_url)
+            cls.save_product_alcampo(ean, name, price_num, price_simbol, product_url)
             return True
         return False
 
     @classmethod
-    def extract_price_alcampo(cls, db: Session, barcode):
+    def extract_price_alcampo(cls, barcode):
         try:
-            Supermercado.extract_data_alcampo(db, barcode)
+            Supermercado.extract_data_alcampo(barcode)
             return True
         except Exception as e:
-            print('Este producto no se vende en Alcampo')
+            logger.exception('Este producto no se vende en Alcampo')
             return False
+
+    @classmethod
+    def add_super_to_column(cls,supermarket, barcode: str):
+        try:
+            product = session.query(Products).filter_by(ean=barcode).first()
+            shop_list = product.shop or ''  # Extraer el valor de la columna shop o usar una cadena vacía si es None
+            if shop_list:
+                shop_list += ', ' + supermarket  # Agregar el nuevo elemento a la cadena existente, separado por comas
+            else:
+                shop_list = supermarket  # Si no hay valores anteriores, usar solo el nuevo elemento
+            product.shop = shop_list
+            session.commit()
+            logger.info(f'Valor actualizado exitosamente en {supermarket}.')
+        except Exception as e:
+            session.rollback()
+            logger.exception(f'Error al actualizar el valor en {supermarket}: {str(e)}')

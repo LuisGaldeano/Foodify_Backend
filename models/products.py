@@ -1,9 +1,11 @@
 from database.database import Base
 from sqlalchemy import Column, Integer, String, BigInteger
 import openfoodfacts as offs
+from models.fridge import Fridge
 
 log.configure_logging()
 logger = logging.getLogger(__name__)
+
 
 class Products(Base):
     __tablename__ = 'products'
@@ -14,8 +16,12 @@ class Products(Base):
     image = Column(String(10000))
     nutriscore = Column(String)
 
+    # fridge = relationship("Fridge", back_populates="product")
+    # shopping_list = relationship("ShoppingList", back_populates="product")
+
+
     def __str__(self):
-        return f"id= {self.id} - name= {self.name}"
+        return f"id= {self.ean} - name= {self.name}"
 
     def __repr__(self):
         return f"<{str(self)}>"
@@ -39,6 +45,7 @@ class Products(Base):
         product_data = offs.products.get_product(barcode)['product']
         if product_data:
             cls.offs_save_product(product_data)
+            Fridge.fridge_save_product(product_data)
             return True
         return False
 

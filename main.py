@@ -1,3 +1,4 @@
+from starlette.responses import StreamingResponse
 from database.database import Base, engine, get_db, session
 from src import foodify_manager
 from src.foodify_manager import FoodifyManager
@@ -19,10 +20,12 @@ from models.super import Supermercado
 '''
 
 
-# foodify_manager = FoodifyManager()
 
 # Instancia del objeto app de Foodify
 app = FastAPI(title='Foodify_API', description='API para registrar comida', version='0.0.1')
+
+# Instancia el objeto foodify_man de Foodify_manager
+foodify_man = FoodifyManager()
 
 # Creación de la tabla
 Base.metadata.create_all(bind=engine)
@@ -47,6 +50,11 @@ async def read_product_by_barcode(ean: int):
     if db_product is None:
         raise HTTPException(status_code=404, detail="Product not found")
     return db_product
+
+
+@app.get('/finished_product', response_model=ProductsBase)
+async def finished_product_by_barcode():
+    return StreamingResponse(foodify_man.capture_image(new_product=False), media_type='multipart/x-mixed-replace; boundary=frame')
 
 
 if __name__ == '__main__':

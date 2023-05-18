@@ -2,6 +2,8 @@ import logging
 import setting.logging as log
 import cv2
 from pyzbar import pyzbar
+
+from models import Fridge
 from models.products import Products
 from models.super import Supermercado
 
@@ -33,8 +35,12 @@ class FoodifyManager:
             Products.get_product_and_save(barcode)
             # Extrae los precios de los diferentes supermercados y los guarda en la tabla
             Supermercado.extract_prices_supermarket(barcode)
+        elif check:
+            product_data = {'code': barcode}
+            Fridge.fridge_save_product(product_data)
+            logger.info("Not a new product - Add to fridge")
 
-    def detect_barcode(self, frame, detected_barcodes: list):
+    def detect_barcode(self, frame, new_product, detected_barcodes: list):
         if detected_barcodes:
             # Dibuha los rectángulos en la imagen
             self.print_rectangles(detected_barcodes=detected_barcodes, frame=frame)
@@ -45,24 +51,42 @@ class FoodifyManager:
             for barcode in detected_barcodes:
                 # Devuelve el código de barras
                 barcode_to_use = barcode.data.decode("utf-8")
-                self.scan_barcode(barcode=barcode_to_use)
-                logger.info("Imagen guardada")
+                if new_product:
+                    self.scan_barcode(barcode=barcode_to_use)
+                    logger.info("Producto registrado")
+                elif not new_product:
+                    self.send_to_shopping_list(barcode=barcode_to_use)
+
+                    """
+                    Tienes que definir la función shopping_list y hacer que borre el producto de la tabla nevera y lo
+                    añada a la tabla lista de la compra
+                    
+                    
+                    HECHO!!  --->   Para ello primero tienes que conseguir que cuando registras un producto nuevo se 
+                    guarde no solo en la tabla products sino también en la tabla fridge
+                    
+                    Deja el que se vea por la api para más adelante, ejecuta foodify desde pruebas sin ejecutar la api
+                    por ahora
+                    """
 
 
+                    logger.info("Producto enviado a shopping_list")
 
+    def send_to_shopping_list(self, barcode:str):
+        pass
 
-    def capture_image(self):
+    def capture_image(self, new_product):
         # Captura de un fotograma de la cámara
         success, frame = self.recorder.read()
         # Voltea el fotograma horizontalmente
         frame = cv2.flip(frame, 1)
         # Detecta los códigos de barras en el fotograma
         detected_barcodes = pyzbar.decode(frame)
-        self.detect_barcode(frame=frame, detected_barcodes=detected_barcodes)
+        self.detect_barcode(frame=frame, detected_barcodes=detected_barcodes, new_product=new_product)
 
-    def __init__(self):
+    def __init__(self, new_product=True):
         # Inicia la cámara pero no registra
         self.recorder = cv2.VideoCapture(0)
         # Mantiene la cámara abierta siempre
         while True:
-            self.capture_image()
+            self.capture_image(new_product)

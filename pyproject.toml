@@ -26,6 +26,7 @@ ffmpeg = "^1.4"
 uvicorn = "^0.22.0"
 fastapi = "^0.95.1"
 sqlalchemy-utils = "^0.41.1"
+python-dotenv = "^1.0.0"
 
 
 [build-system]

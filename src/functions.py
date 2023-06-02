@@ -1,4 +1,4 @@
-from src.barcodes import iniciar_foodify, iniciar_foodify_con_imagen
+from src.foodify_manager import FoodifyManager
 
-# iniciar_foodify()
-iniciar_foodify_con_imagen()
+# FoodifyManager()
+# iniciar_foodify_con_imagen('../img/cocacola.jpg')

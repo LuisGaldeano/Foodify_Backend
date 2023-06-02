@@ -1,10 +1,9 @@
 import logging
 import os
-
 import setting.logging as log
 from sqlalchemy_utils import ChoiceType
 from database.database import Base, session
-from sqlalchemy import Column, Integer, String, ForeignKey, BigInteger, Float, DateTime
+from sqlalchemy import Column, Integer, String
 from sqlalchemy.orm import relationship
 from selenium import webdriver
 from webdriver_manager.chrome import ChromeDriverManager
@@ -13,9 +12,7 @@ import time
 from bs4 import BeautifulSoup as bs
 import requests as req
 from selenium.webdriver.chrome.options import Options
-from datetime import datetime
 from models import Products, ProductSuperRelationship
-
 
 log.configure_logging()
 logger = logging.getLogger(__name__)
@@ -39,24 +36,11 @@ class Supermarket(Base):  # Supermercado Día
 
     productsuprel = relationship("ProductSuperRelationship", back_populates="supers")
 
-
     def __str__(self):
         return f"id= {self.id} - name= {self.name}"
 
     def __repr__(self):
         return f"<{str(self)}>"
-
-    @classmethod
-    def add_new_super(cls, name_super: str, url: str):
-        supermarket = Supermarket(
-            name=name_super,
-            url_scrapper=url
-        )
-
-        session.add(supermarket)
-        session.commit()
-
-
 
     @classmethod
     def extract_prices_supermarkets(cls, ean, product_added):
@@ -69,7 +53,8 @@ class Supermarket(Base):  # Supermercado Día
 
                 # Intenta descargar los precios mediante web strapping
                 try:
-                    Supermarket.extract_and_save_data_dia(ean=ean, super_market_dia=super_market_dia, product_added=product_added)
+                    Supermarket.extract_and_save_data_dia(ean=ean, super_market_dia=super_market_dia,
+                                                          product_added=product_added)
                 except Exception as e:
                     logger.exception('Este producto no se vende en Dia')
 
@@ -79,7 +64,8 @@ class Supermarket(Base):  # Supermercado Día
                 super_market_carrefour = cls.get_or_create(name=cls.CARREFOUR, url_scrapper=url_carrefour)
 
                 try:
-                    Supermarket.extract_and_save_data_carrefour(ean=ean, super_market_carrefour=super_market_carrefour, product_added=product_added)
+                    Supermarket.extract_and_save_data_carrefour(ean=ean, super_market_carrefour=super_market_carrefour,
+                                                                product_added=product_added)
                 except Exception as e:
                     logger.exception('Este producto no se vende en Carrefour')
 
@@ -89,21 +75,23 @@ class Supermarket(Base):  # Supermercado Día
                 super_market_alcampo = cls.get_or_create(name=cls.ALCAMPO, url_scrapper=url_alcampo)
 
                 try:
-                    Supermarket.extract_and_save_data_alcampo(ean=ean, super_market_alcampo=super_market_alcampo, product_added=product_added)
+                    Supermarket.extract_and_save_data_alcampo(ean=ean, super_market_alcampo=super_market_alcampo,
+                                                              product_added=product_added)
                 except Exception as e:
                     logger.exception('Este producto no se vende en Carrefour')
 
-
     @classmethod
-    def save_product_dia(cls, product_name: str, product_url: str):
-        supdia = Supermarket(
-            product_name=product_name,
-            product_url=product_url
-        )
+    def get_or_create(cls, name: str, url_scrapper: str):
+        super_market = session.query(Supermarket).filter_by(name=name).first()
+        if not super_market:
+            super_market = Supermarket(
+                name=name,
+                url_scrapper=url_scrapper
+            )
 
-        session.add(supdia)
-        session.commit()
-
+            session.add(super_market)
+            session.commit()
+        return super_market
 
     @classmethod
     def extract_and_save_data_dia(cls, ean: int, super_market_dia, product_added):
@@ -127,16 +115,6 @@ class Supermarket(Base):  # Supermercado Día
             ProductSuperRelationship.save_new_relation(price_num, price_currency, super_market_dia.id, product_added)
         except Exception as ex:
             raise Exception(f"El producto '{product_added.id}' no se vende en Día")
-
-    @classmethod
-    def save_product_carrefour(cls, product_name: str, product_url: str):
-        supcarr = Supermarket(
-            product_name=product_name,
-            product_url=product_url
-        )
-
-        session.add(supcarr)
-        session.commit()
 
     @classmethod
     def extract_and_save_data_carrefour(cls, ean: str, super_market_carrefour, product_added):
@@ -173,26 +151,6 @@ class Supermarket(Base):  # Supermercado Día
 
         ProductSuperRelationship.save_new_relation(price_num, price_currency, super_market_carrefour.id, product_added)
 
-
-    @classmethod
-    def extract_price_carrefour(cls, barcode):
-        try:
-            Supermarket.extract_and_save_data_carrefour(barcode)
-            return True
-        except Exception as e:
-            logger.info('Este producto no se vende en Carrefour')
-            return False
-
-    @classmethod
-    def save_product_alcampo(cls, product_name: str, product_url: str):
-        supalca = Supermarket(
-            product_name=product_name,
-            product_url=product_url
-        )
-
-        session.add(supalca)
-        session.commit()
-
     @classmethod
     def extract_and_save_data_alcampo(cls, ean, super_market_alcampo, product_added):
         logger.info('Downloading Alcampo prices')
@@ -226,28 +184,3 @@ class Supermarket(Base):  # Supermercado Día
             raise Exception(f"Price not found for product '{product_added.id}' in Alcampo")
 
         ProductSuperRelationship.save_new_relation(price_num, price_currency, super_market_alcampo.id, product_added)
-
-    @classmethod
-    def extract_price_alcampo(cls, barcode):
-        try:
-            Supermarket.extract_and_save_data_alcampo(barcode)
-            return True
-        except Exception as e:
-            logger.exception('Este producto no se vende en Alcampo')
-            return False
-
-    @classmethod
-    def add_super_to_column(cls,supermarket, barcode: str):
-        try:
-            product = session.query(Products).filter_by(ean=barcode).first()
-            shop_list = product.shop or ''  # Extraer el valor de la columna shop o usar una cadena vacía si es None
-            if shop_list:
-                shop_list += ', ' + supermarket  # Agregar el nuevo elemento a la cadena existente, separado por comas
-            else:
-                shop_list = supermarket  # Si no hay valores anteriores, usar solo el nuevo elemento
-            product.shop = shop_list
-            session.commit()
-            logger.info(f'Valor actualizado exitosamente en {supermarket}.')
-        except Exception as e:
-            session.rollback()
-            logger.exception(f'Error al actualizar el valor en {supermarket}: {str(e)}')

@@ -1,12 +1,9 @@
 import logging
-
 from sqlalchemy.orm import relationship
-
 import setting.logging as log
 from database.database import Base, session
 from sqlalchemy import Column, Integer, String, BigInteger, ForeignKey, Boolean
 import openfoodfacts as offs
-# from models.fridge import Fridge
 from models.brand import Brands
 
 log.configure_logging()
@@ -32,9 +29,6 @@ class Products(Base):
 
     productsuprel = relationship("ProductSuperRelationship", back_populates="products")
 
-
-
-
     def __str__(self):
         return f"id= {self.id} - name= {self.name} - ean= {self.ean}"
 
@@ -43,6 +37,15 @@ class Products(Base):
 
     @classmethod
     def offs_save_product(cls, product_data: dict, recurrent: bool, units: int):
+        """
+        Guarda un nuevo producto en la base de datos utilizando los datos proporcionados.
+
+        :param product_data: Un diccionario con los datos del producto, incluyendo el código, nombre, URL de imagen y nutriscore.
+        :param recurrent: Indica si el producto es recurrente (True) o no recurrente (False).
+        :param units: El número de unidades por paquete del producto.
+        :return: El objeto del producto guardado en la base de datos.
+        """
+
         brand = Brands.offs_save_brand(product_data)
 
         product = Products(
@@ -57,38 +60,31 @@ class Products(Base):
 
         session.add(product)
         session.commit()
-        session.close()
+        return product
 
     @classmethod
     def get_or_create_product(cls, barcode: str, recurrent: bool, units: int):
         """
-        This method will call offs api and get the data associated to the product
+        Obtiene un producto de la base de datos según el código de barras o crea un nuevo producto si no existe.
+
+        :param barcode: El EAN del producto.
+        :param recurrent: Indica si el producto es recurrente (True) o no recurrente (False).
+        :param units: El número de unidades por paquete del producto.
+        :return: El objeto del producto obtenido de la base de datos o el nuevo producto creado.
+        :raises Exception: Si no se encuentra la información del producto en la fuente de datos externa.
         """
+        logger.info(barcode)
         product_query = session.query(Products).filter_by(ean=barcode).first()
         if product_query:
             product = session.query(Products).filter(Products.ean == barcode).first()
+            logger.info('Product found')
             return product
         else:
             product_data = offs.products.get_product(barcode)['product']
+            logger.info(product_data)
             if not product_data:
                 raise Exception("Product data not found in offs")
 
             product = cls.offs_save_product(product_data=product_data, recurrent=recurrent, units=units)
             logger.info('Successful product registration')
             return product
-
-    @classmethod
-    def check_ean_exists(cls, ean: str) -> bool:
-        return session.query(Products).filter_by(ean=ean).scalar()
-
-    @classmethod
-    def get_product_by_name(cls, name: str):
-        product = session.query(Products).filter(Products.name == name).first()
-        return product
-
-    @classmethod
-    def get_product_by_barcode(cls, ean: int):
-        product = session.query(Products).filter(Products.ean == ean).first()
-        return product
-
-

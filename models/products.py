@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 class Products(Base):
-    __tablename__ = 'products'
+    __tablename__ = "products"
     id = Column(Integer, primary_key=True, autoincrement=True)
     ean = Column(BigInteger, index=True)
     name = Column(String(255), index=True)
@@ -49,13 +49,13 @@ class Products(Base):
         brand = Brands.offs_save_brand(product_data)
 
         product = Products(
-            ean=product_data['code'],
-            name=product_data['product_name'],
-            image=product_data['image_url'],
-            nutriscore=product_data['nutriscore_grade'],
+            ean=product_data["code"],
+            name=product_data["product_name"],
+            image=product_data["image_url"],
+            nutriscore=product_data["nutriscore_grade"],
             brand_id=brand.id,
             recurrent=recurrent,
-            unit_packaging=units
+            unit_packaging=units,
         )
 
         session.add(product)
@@ -77,14 +77,16 @@ class Products(Base):
         product_query = session.query(Products).filter_by(ean=barcode).first()
         if product_query:
             product = session.query(Products).filter(Products.ean == barcode).first()
-            logger.info('Product found')
+            logger.info("Product found")
             return product
         else:
-            product_data = offs.products.get_product(barcode)['product']
+            product_data = offs.products.get_product(barcode)["product"]
             logger.info(product_data)
             if not product_data:
                 raise Exception("Product data not found in offs")
 
-            product = cls.offs_save_product(product_data=product_data, recurrent=recurrent, units=units)
-            logger.info('Successful product registration')
+            product = cls.offs_save_product(
+                product_data=product_data, recurrent=recurrent, units=units
+            )
+            logger.info("Successful product registration")
             return product

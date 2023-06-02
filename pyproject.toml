@@ -32,7 +32,41 @@ apscheduler = "^3.10.1"
 starlette = "^0.27.0"
 
 
+[tool.poetry.group.dev.dependencies]
+black = "^23.3.0"
+ruff = "^0.0.270"
+isort = "^5.12.0"
+pylint = "^2.17.4"
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
+[tool.pylint]
+max-line-length = 90
+disable = ["C0114", "W0718", "R0902", "R0903"]
+good-names = ['ex', ]
+
+[tool.black]
+line-length = 90
+exclude = ["htmlcov", "venv", ".pytest_cache", ".ruff_cache", "docs"]
+
+[tool.isort]
+skip = "__init__.py"
+
+[tool.pytest.ini_options]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+]
+
+[tool.coverage.run]
+relative_files = true
+
+[tool.ruff]
+line-length = 90
+exclude = [
+    ".pytest_cache",
+    "venv",
+]
+[tool.ruff.per-file-ignores]
+"__init__.py" = ["F401", "F403"]

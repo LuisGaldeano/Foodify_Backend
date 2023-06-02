@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 class Brands(Base):
-    __tablename__ = 'brand'
+    __tablename__ = "brand"
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String(255), unique=True)
 
@@ -30,10 +30,9 @@ class Brands(Base):
         :param product_data: Producto
         :return: Objeto marca del producto
         """
-        existing_brand = cls.select_brand(product_data['brands'].upper().strip())
+        existing_brand = cls.select_brand(product_data["brands"].upper().strip())
         if not existing_brand:
-            brand = Brands(
-                name=product_data['brands'].upper().strip())
+            brand = Brands(name=product_data["brands"].upper().strip())
 
             session.add(brand)
             session.commit()

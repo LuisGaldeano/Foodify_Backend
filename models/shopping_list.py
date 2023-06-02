@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 class ShoppingList(Base):  # Supermercado Día
-    __tablename__ = 'shoplist'
+    __tablename__ = "shoplist"
     id = Column(Integer, primary_key=True, autoincrement=True)
     date_in = Column(Date, default=datetime.utcnow)
     date_buy = Column(Date)
@@ -40,25 +40,26 @@ class ShoppingList(Base):  # Supermercado Día
         :return: None
         """
         # Obtengo la última fecha
-        subquery = session.query(
-            func.max(ProductSuperRelationship.date).label('max_date')
-        ).filter(
-            ProductSuperRelationship.product_id == product_fridge.product_id
-        ).group_by(
-            ProductSuperRelationship.product_id
-        ).subquery()
+        subquery = (
+            session.query(func.max(ProductSuperRelationship.date).label("max_date"))
+            .filter(ProductSuperRelationship.product_id == product_fridge.product_id)
+            .group_by(ProductSuperRelationship.product_id)
+            .subquery()
+        )
 
         # Realizar la consulta principal para obtener el resultado final
-        prod_super_relation = session.query(ProductSuperRelationship).filter(
-            ProductSuperRelationship.product_id == product_fridge.product_id,
-            ProductSuperRelationship.date == subquery.c.max_date
-        ).order_by(
-            ProductSuperRelationship.price
-        ).first()
+        prod_super_relation = (
+            session.query(ProductSuperRelationship)
+            .filter(
+                ProductSuperRelationship.product_id == product_fridge.product_id,
+                ProductSuperRelationship.date == subquery.c.max_date,
+            )
+            .order_by(ProductSuperRelationship.price)
+            .first()
+        )
 
         shopping_list_product = ShoppingList(
-            product_id=product_fridge.product_id,
-            super_id=prod_super_relation.super_id
+            product_id=product_fridge.product_id, super_id=prod_super_relation.super_id
         )
 
         session.add(shopping_list_product)
@@ -80,45 +81,59 @@ class ShoppingList(Base):  # Supermercado Día
             super_list = []
             logger.info(product)
             # Busco si existe el producto en la tabla de relación de producto-supermercado para descargar el precio
-            relation = session.query(ProductSuperRelationship.super_id).filter(
-                ProductSuperRelationship.product_id == product.id).all()
+            relation = (
+                session.query(ProductSuperRelationship.super_id)
+                .filter(ProductSuperRelationship.product_id == product.id)
+                .all()
+            )
             for i, value in enumerate(relation):
                 super_list.append(value[0])
             super_list = list(dict.fromkeys(super_list))
             logger.info(super_list)
             if not super_list:
-                logger.info('Está en NOT RELATION')
+                logger.info("Está en NOT RELATION")
                 # Download prices for first time
-                ean = session.query(Products.ean).filter(Products.id == product.id).first()
+                ean = (
+                    session.query(Products.ean).filter(Products.id == product.id).first()
+                )
                 Supermarket.extract_prices_supermarkets(ean=ean, product_added=product)
 
             if super_list:
-                logger.info('Está en RELATION')
+                logger.info("Está en RELATION")
                 # Obtengo la última fecha
-                subquery = session.query(
-                    func.max(ProductSuperRelationship.date).label('max_date')
-                ).filter(
-                    ProductSuperRelationship.product_id == product.id
-                ).group_by(
-                    ProductSuperRelationship.product_id
-                ).subquery()
+                subquery = (
+                    session.query(
+                        func.max(ProductSuperRelationship.date).label("max_date")
+                    )
+                    .filter(ProductSuperRelationship.product_id == product.id)
+                    .group_by(ProductSuperRelationship.product_id)
+                    .subquery()
+                )
 
                 # Realizar la consulta principal para obtener el resultado final
-                min_price_super = session.query(ProductSuperRelationship).filter(
-                    ProductSuperRelationship.product_id == product.id,
-                    ProductSuperRelationship.date == subquery.c.max_date
-                ).order_by(
-                    ProductSuperRelationship.price
-                ).first()
+                min_price_super = (
+                    session.query(ProductSuperRelationship)
+                    .filter(
+                        ProductSuperRelationship.product_id == product.id,
+                        ProductSuperRelationship.date == subquery.c.max_date,
+                    )
+                    .order_by(ProductSuperRelationship.price)
+                    .first()
+                )
 
-                logger.info('Todos los precios coinciden')
+                logger.info("Todos los precios coinciden")
 
-                super_id = session.query(ShoppingList.super_id).filter(ShoppingList.product_id == product.id).first()
+                super_id = (
+                    session.query(ShoppingList.super_id)
+                    .filter(ShoppingList.product_id == product.id)
+                    .first()
+                )
 
                 if min_price_super.super_id != super_id:
-                    session.query(ShoppingList).filter(ShoppingList.product_id == min_price_super.product_id).update(
-                        {ShoppingList.super_id: min_price_super.super_id})
+                    session.query(ShoppingList).filter(
+                        ShoppingList.product_id == min_price_super.product_id
+                    ).update({ShoppingList.super_id: min_price_super.super_id})
 
                     session.commit()
 
-                    logger.info('Actualiza la tabla y la añade a mostrar')
+                    logger.info("Actualiza la tabla y la añade a mostrar")

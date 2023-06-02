@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 
 class ProductSuperRelationship(Base):
-    __tablename__ = 'productsuprel'
+    __tablename__ = "productsuprel"
     id = Column(Integer, primary_key=True, autoincrement=True)
     price = Column(Float, index=True)
     currency = Column(String(255))

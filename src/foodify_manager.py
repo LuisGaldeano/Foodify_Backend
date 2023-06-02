@@ -77,6 +77,9 @@ class FoodifyManager:
                 Fridge.id.desc()).first()
             unit_actual = product_fridge.unit_actual
             new_unit_actual = unit_actual - 1
+
+            # Crear un solo caso con elif
+
             if new_unit_actual >= 0:
                 if new_unit_actual == 0:
                     logger.info('Se ha acabado el producto')
@@ -100,8 +103,9 @@ class FoodifyManager:
                     return f'Te quedan {new_unit_actual} del producto {product.name}'
             else:
                 return f'El producto {product.name} no está en la nevera'
-        except:
+        except Exception as ex:
             logger.exception('This product was not in the fridge')
+            raise ex
 
     def buy_shopping_list(self):
         # Traigo todos los productos que están en la lista de la compra

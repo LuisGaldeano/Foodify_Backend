@@ -6,6 +6,7 @@ from models import ProductSuperRelationship, Products
 from models.super import Supermarket
 import setting.logging as log
 import logging
+from fpdf import FPDF
 
 log.configure_logging()
 logger = logging.getLogger(__name__)
@@ -79,7 +80,7 @@ class ShoppingList(Base):  # Supermercado Día
 
         for product in products:
             super_list = []
-            logger.info(product)
+
             # Busco si existe el producto en la tabla de relación de producto-supermercado para descargar el precio
             relation = (
                 session.query(ProductSuperRelationship.super_id)
@@ -89,9 +90,8 @@ class ShoppingList(Base):  # Supermercado Día
             for i, value in enumerate(relation):
                 super_list.append(value[0])
             super_list = list(dict.fromkeys(super_list))
-            logger.info(super_list)
+
             if not super_list:
-                logger.info("Está en NOT RELATION")
                 # Download prices for first time
                 ean = (
                     session.query(Products.ean).filter(Products.id == product.id).first()
@@ -99,7 +99,7 @@ class ShoppingList(Base):  # Supermercado Día
                 Supermarket.extract_prices_supermarkets(ean=ean, product_added=product)
 
             if super_list:
-                logger.info("Está en RELATION")
+
                 # Obtengo la última fecha
                 subquery = (
                     session.query(
@@ -137,3 +137,128 @@ class ShoppingList(Base):  # Supermercado Día
                     session.commit()
 
                     logger.info("Actualiza la tabla y la añade a mostrar")
+
+    @classmethod
+    def sow_products_in_shopping_list(cls):
+        """
+            Actualiza la lista de compras y recopila los productos en la lista.
+
+            :param cls: Classmethod de ShoppingList.
+            :return: Una lista de diccionarios que contienen los detalles de los productos en la lista de compras.
+                     Cada diccionario tiene las siguientes claves:
+                       - "name": El nombre del producto.
+                       - "date_in": La fecha en que se agregó el producto a la lista en formato ISO.
+                       - "super": El nombre del supermercado donde se puede encontrar el producto.
+                       - "price": El precio del producto.
+                       - "currency": La moneda en la que se muestra el precio.
+            """
+
+        cls.update_shopping_list()
+        all_products_in_shopping_list = session.query(ShoppingList).all()
+        products = []
+        for product_in_shopping_list in all_products_in_shopping_list:
+            name = session.query(Products.name).filter(Products.id == product_in_shopping_list.product_id).first()
+            supermarket = session.query(Supermarket.name).filter(
+                Supermarket.id == product_in_shopping_list.super_id).first()
+            date_in = product_in_shopping_list.date_in
+            date_buy = product_in_shopping_list.date_buy
+            price = session.query(ProductSuperRelationship) \
+                .filter(ProductSuperRelationship.product_id == product_in_shopping_list.product_id,
+                        ProductSuperRelationship.super_id == product_in_shopping_list.super_id).first()
+
+            if not date_buy:
+                product_data = {
+                    "name": name[0],
+                    "date_in": date_in.isoformat(),
+                    "super": supermarket[0].value,
+                    "price": price.price,
+                    "currency": price.currency
+                }
+                products.append(product_data)
+        return products
+
+    @classmethod
+    def create_buy_links(cls):
+        """
+            Crea enlaces de compra para los productos de la lista de la compra.
+
+            :return: Una lista de json que contienen los detalles de los productos con enlaces de compra.
+                     Cada json tiene las siguientes claves:
+                       - "id": El identificador numérico del producto.
+                       - "Producto": Una cadena que indica el número de producto en la lista.
+                       - "Nombre": El nombre del producto.
+                       - "Supermercado": El nombre del supermercado donde se puede encontrar el producto.
+                       - "Precio": El precio del producto.
+                       - "URL": El enlace de compra del producto.
+            """
+        products = session.query(cls).filter(cls.date_buy == None).all()
+        shopping_list = []
+
+        # Recorrer la lista de productos y agregarlos al PDF
+        for i, product in enumerate(products):
+            producto = session.query(Products).filter(Products.id == product.product_id).first()
+            supermarket = session.query(Supermarket.name).filter(Supermarket.id == product.super_id).first()
+
+            price = session.query(ProductSuperRelationship.price) \
+                .filter(ProductSuperRelationship.super_id == product.super_id,
+                        ProductSuperRelationship.product_id == product.product_id) \
+                .order_by(ProductSuperRelationship.date).first()
+
+            url_super = session.query(Supermarket.url_scrapper).filter(Supermarket.id == product.super_id).first()
+            url = f"{url_super[0]}{producto.ean}"
+
+            product_json = {
+                "id": i + 1,
+                "Producto": f"Producto {i + 1}",
+                "Nombre": producto.name,
+                "Supermercado": supermarket[0].value,
+                "Precio": price[0],
+                "URL": url
+            }
+
+            shopping_list.append(product_json)
+
+        return shopping_list
+
+    @classmethod
+    def create_pdf(cls):
+        """
+        Crea un archivo PDF con los detalles de los productos en la lista de la compra.
+
+        :return: None
+        """
+        products = session.query(cls).filter(cls.date_buy == None).all()
+
+        # Crear un objeto PDF
+        pdf = FPDF()
+
+        # Añadir una página al PDF
+        pdf.add_page()
+
+        # Establecer la fuente y el tamaño de la fuente
+        pdf.set_font('Arial', size=12)
+
+        date = datetime.utcnow().date()
+
+        # Recorrer la lista de productos y agregarlos al PDF
+        for i, product in enumerate(products):
+            producto = session.query(Products).filter(Products.id == product.product_id).first()
+            supermarket = session.query(Supermarket.name).filter(Supermarket.id == product.super_id).first()
+
+            price = session.query(ProductSuperRelationship.price) \
+                .filter(ProductSuperRelationship.super_id == product.super_id,
+                        ProductSuperRelationship.product_id == product.product_id) \
+                .order_by(ProductSuperRelationship.date).first()
+
+            url_super = session.query(Supermarket.url_scrapper).filter(Supermarket.id == product.super_id).first()
+            url = f"{url_super[0]}{producto.ean}"
+
+            # Agregar los datos al PDF
+            pdf.cell(0, 10, f"Producto {i + 1}:", ln=True)
+            pdf.cell(0, 5, f"Nombre: {producto.name}, Supermercado: {supermarket[0].value}, Precio: {price[0]} Euros",
+                     ln=True)
+            pdf.cell(0, 5, f"URL: {url}", ln=True)
+            pdf.cell(0, 10, "", ln=True)
+
+        # Guardar el archivo PDF
+        pdf.output(f'./pdf/{date}-ListaCompra.pdf')

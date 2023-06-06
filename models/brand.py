@@ -37,8 +37,6 @@ class Brands(Base):
             session.add(brand)
             session.commit()
 
-            logger.info(brand)
-
             return brand
         elif existing_brand:
             return existing_brand
@@ -51,7 +49,5 @@ class Brands(Base):
         :return: Objeto de la marca
         """
         brand = session.query(Brands).filter(Brands.name == brand).first()
-
-        logger.info(brand)
 
         return brand

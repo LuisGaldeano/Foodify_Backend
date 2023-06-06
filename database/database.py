@@ -1,7 +1,7 @@
-from setting.setting import *
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base
 from sqlalchemy.orm import sessionmaker
+from setting.setting import SQLALCHEMY_DATABASE_URL
 
 # Configuración de la conexión a la base de datos
 engine = create_engine(SQLALCHEMY_DATABASE_URL)

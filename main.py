@@ -3,13 +3,12 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from database.database import engine
-from models import ShoppingList
+from models import ShoppingList, Fridge
 from src.foodify_manager import FoodifyManager
 import uvicorn
-from fastapi import FastAPI, Depends, HTTPException
-from schema.products_sch import ProductsBase, NewProductSchema, PrintShoppingList
+from fastapi import FastAPI
+from schema.products_sch import NewProductSchema
 from models.products import Products
-
 from models.brand import *
 
 # First of all load the env values
@@ -46,12 +45,13 @@ async def read_all_products():
 async def add_product_endpoint(product: NewProductSchema):
     try:
         detected_barcodes = foodify_man.capture_image_and_get_barcodes()
-        product_added = foodify_man.new_product(
+        product_added, info = foodify_man.new_product(
             detected_barcodes=detected_barcodes,
             units=product.units,
             recurrent=product.recurrent,
         )
-        return product_added
+
+        return info
     except Exception as ex:
         print(ex)
         return "No encontré producto, enfoca mejor"
@@ -61,8 +61,19 @@ async def add_product_endpoint(product: NewProductSchema):
 async def spend_products():
     try:
         detected_barcodes = foodify_man.capture_image_and_get_barcodes()
-        spend_product = foodify_man.old_product(detected_barcodes=detected_barcodes)
-        return spend_product
+        spend_product, info = foodify_man.old_product(detected_barcodes=detected_barcodes)
+        brand = session.query(Brands).filter(Brands.id == spend_product.brand_id).first()
+
+        product_data = {
+            "ean": spend_product.ean,
+            "nombre": spend_product.name,
+            "marca": brand.name,
+            "nutriscore": spend_product.nutriscore,
+            "recurrente": spend_product.recurrent,
+            "unidades_paquete": spend_product.unit_packaging,
+            "info": info
+        }
+        return product_data
     except Exception as ex:
         return "No encontré ningún producto, enfoca mejor"
 
@@ -82,7 +93,41 @@ async def update_all_prices():
 @app.get("/buy_shopping_list")
 async def buy_shopping_list():
     buy_list = foodify_man.buy_shopping_list()
-    return buy_list
+    info = {
+        "response": "Se han comprado los productos de la lista de la compra",
+        "list_bought": buy_list,
+    }
+    return info
+
+
+@app.get('/fridge')
+async def fridge():
+    products_in_fridge = Fridge.sow_products_in_fridge()
+    return products_in_fridge
+
+
+@app.get('/shopping_list')
+async def shopping_list():
+    products_in_shopping_list = ShoppingList.sow_products_in_shopping_list()
+    return products_in_shopping_list
+
+
+@app.get('/product_added')
+async def product_added():
+    last_product_added = Products.last_product_added()
+    logger.info('Hace el envío')
+    return last_product_added
+
+
+@app.get('/create_buy_links')
+async def create_buy_links():
+    buy_links = ShoppingList.create_buy_links()
+    return buy_links
+
+
+@app.get('/create_pdf')
+async def create_pdf():
+    ShoppingList.create_pdf()
 
 
 @app.on_event("startup")

@@ -12,7 +12,7 @@ import time
 from bs4 import BeautifulSoup as bs
 import requests as req
 from selenium.webdriver.chrome.options import Options
-from models import Products, ProductSuperRelationship
+from models import ProductSuperRelationship
 
 log.configure_logging()
 logger = logging.getLogger(__name__)
@@ -31,6 +31,7 @@ class Supermarket(Base):  # Supermercado Día
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(ChoiceType(AVAILABLE_SUPERS))
     url_scrapper = Column(String(255))
+    url_chart = Column(String(255))
 
     shoppinglists = relationship("ShoppingList", back_populates="supers")
 
@@ -44,12 +45,20 @@ class Supermarket(Base):  # Supermercado Día
 
     @classmethod
     def extract_prices_supermarkets(cls, ean, product_added):
+        """
+            Extrae los precios de los supermercados disponibles mediante web scraping para un determinado código EAN de producto.
+
+            :param ean: El código EAN del producto.
+            :param product_added: El producto agregado a la lista.
+            :return: None
+            """
         # Para cada supermercado en la lista de supermercados disponibles hago web scrapping
         for supermarket, _ in cls.AVAILABLE_SUPERS:
             if supermarket == cls.DIA:
                 # Get or create super and return a super object
                 url_dia = os.getenv("DIA_URL")
-                super_market_dia = cls.get_or_create(name=cls.DIA, url_scrapper=url_dia)
+                url_chart_dia = os.getenv("DIA_URL_CHART")
+                super_market_dia = cls.get_or_create(name=cls.DIA, url_scrapper=url_dia, url_cart=url_chart_dia)
 
                 # Intenta descargar los precios mediante web strapping
                 try:
@@ -64,8 +73,9 @@ class Supermarket(Base):  # Supermercado Día
             if supermarket == cls.CARREFOUR:
                 # Get or create super and return a super object
                 url_carrefour = os.getenv("CARREFOUR_URL")
+                url_chart_carrefour = os.getenv("CARREFOUR_URL_CHART")
                 super_market_carrefour = cls.get_or_create(
-                    name=cls.CARREFOUR, url_scrapper=url_carrefour
+                    name=cls.CARREFOUR, url_scrapper=url_carrefour, url_cart=url_chart_carrefour
                 )
 
                 try:
@@ -80,8 +90,9 @@ class Supermarket(Base):  # Supermercado Día
             if supermarket == cls.ALCAMPO:
                 # Get or create super and return a super object
                 url_alcampo = os.getenv("ALCAMPO_URL")
+                url_chart_alcampo = os.getenv("ALCAMPO_URL_CHART")
                 super_market_alcampo = cls.get_or_create(
-                    name=cls.ALCAMPO, url_scrapper=url_alcampo
+                    name=cls.ALCAMPO, url_scrapper=url_alcampo, url_cart=url_chart_alcampo
                 )
 
                 try:
@@ -94,10 +105,18 @@ class Supermarket(Base):  # Supermercado Día
                     logger.exception("Este producto no se vende en Carrefour")
 
     @classmethod
-    def get_or_create(cls, name: str, url_scrapper: str):
+    def get_or_create(cls, name: str, url_scrapper: str, url_cart: str):
+        """
+            Obtiene un objeto Supermarket existente con el nombre proporcionado o crea uno nuevo si no existe.
+
+            :param name: El nombre del supermercado.
+            :param url_scrapper: La URL del scrapper del supermercado.
+            :param url_cart: La URL del carrito del supermercado.
+            :return: El objeto Supermarket existente o recién creado.
+            """
         super_market = session.query(Supermarket).filter_by(name=name).first()
         if not super_market:
-            super_market = Supermarket(name=name, url_scrapper=url_scrapper)
+            super_market = Supermarket(name=name, url_scrapper=url_scrapper, url_chart=url_cart)
 
             session.add(super_market)
             session.commit()
@@ -105,6 +124,15 @@ class Supermarket(Base):  # Supermercado Día
 
     @classmethod
     def extract_and_save_data_dia(cls, ean: int, super_market_dia, product_added):
+        """
+            Extrae y guarda los datos de precios del supermercado Día para un determinado código EAN de producto.
+
+            :param ean: El código EAN del producto.
+            :param super_market_dia: El objeto Supermarket correspondiente al supermercado Día.
+            :param product_added: El producto agregado a la lista.
+            :raises Exception: Si no se encuentra el precio del producto en el supermercado Día.
+            :return: None
+            """
         logger.info("Downloading Dia prices")
         try:
             ean = str(ean)
@@ -131,9 +159,16 @@ class Supermarket(Base):  # Supermercado Día
             raise Exception(f"El producto '{product_added.id}' no se vende en Día")
 
     @classmethod
-    def extract_and_save_data_carrefour(
-        cls, ean: str, super_market_carrefour, product_added
-    ):
+    def extract_and_save_data_carrefour(cls, ean: str, super_market_carrefour, product_added):
+        """
+            Extrae y guarda los datos de precios del supermercado Carrefour para un determinado código EAN de producto.
+
+            :param ean: El código EAN del producto.
+            :param super_market_carrefour: El objeto Supermarket correspondiente al supermercado Carrefour.
+            :param product_added: El producto agregado a la lista.
+            :raises Exception: Si no se encuentra el precio del producto en el supermercado Carrefour.
+            :return: None
+            """
         logger.info("Downloading Carrefour prices")
         # opciones del driver
         opciones = Options()
@@ -173,6 +208,15 @@ class Supermarket(Base):  # Supermercado Día
 
     @classmethod
     def extract_and_save_data_alcampo(cls, ean, super_market_alcampo, product_added):
+        """
+            Extrae y guarda los datos de precios del supermercado Alcampo para un determinado código EAN de producto.
+
+            :param ean: El código EAN del producto.
+            :param super_market_alcampo: El objeto Supermarket correspondiente al supermercado Alcampo.
+            :param product_added: El producto agregado a la lista.
+            :raises Exception: Si no se encuentra el precio del producto en el supermercado Alcampo.
+            :return: None
+        """
         logger.info("Downloading Alcampo prices")
         # opciones del driver
         opciones = Options()

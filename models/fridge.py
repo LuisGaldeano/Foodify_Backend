@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime
 from database.database import Base, session
-from sqlalchemy import Column, Integer, String, ForeignKey, BigInteger, Float, Date
+from sqlalchemy import Column, Integer, ForeignKey, BigInteger, Date
 from sqlalchemy.orm import relationship
 import setting.logging as log
 from models.products import Products
@@ -66,3 +66,20 @@ class Fridge(Base):
             new_unit_actual = unit_actual + units_per_package
 
         return new_unit_actual
+
+    @classmethod
+    def sow_products_in_fridge(cls):
+        all_products_in_fridge = session.query(Fridge).all()
+        products = []
+        for product_in_fridge in all_products_in_fridge:
+            name = session.query(Products.name).filter(Products.id == product_in_fridge.product_id).first()
+            date_in = product_in_fridge.date_in
+            unit_actual = product_in_fridge.unit_actual
+            if unit_actual != 0:
+                product_data = {
+                    "name": name[0],
+                    "unit_actual": unit_actual,
+                    "date_in": date_in.isoformat()
+                }
+                products.append(product_data)
+        return products

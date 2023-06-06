@@ -73,15 +73,16 @@ class Products(Base):
         :return: El objeto del producto obtenido de la base de datos o el nuevo producto creado.
         :raises Exception: Si no se encuentra la información del producto en la fuente de datos externa.
         """
-        logger.info(barcode)
+
         product_query = session.query(Products).filter_by(ean=barcode).first()
         if product_query:
             product = session.query(Products).filter(Products.ean == barcode).first()
             logger.info("Product found")
+
             return product
         else:
             product_data = offs.products.get_product(barcode)["product"]
-            logger.info(product_data)
+
             if not product_data:
                 raise Exception("Product data not found in offs")
 
@@ -89,4 +90,30 @@ class Products(Base):
                 product_data=product_data, recurrent=recurrent, units=units
             )
             logger.info("Successful product registration")
+
             return product
+
+    @classmethod
+    def last_product_added(cls):
+        """
+            Obtiene los detalles del último producto agregado a través de su identificador.
+
+            :return: Un diccionario con los siguientes detalles del producto:
+                     - "ean": El código EAN del producto.
+                     - "nombre": El nombre del producto.
+                     - "marca": El nombre de la marca del producto.
+                     - "nutriscore": El nutriscore del producto.
+                     - "recurrente": Indicador booleano que muestra si el producto es recurrente.
+                     - "unidades_paquete": El número de unidades en el empaque del producto.
+            """
+        product = session.query(Products).order_by((Products.id.desc())).first()
+        brand = session.query(Brands).filter(Brands.id == product.brand_id).first()
+        product_data = {
+            "ean": product.ean,
+            "nombre": product.name,
+            "marca": brand.name,
+            "nutriscore": product.nutriscore,
+            "recurrente": product.recurrent,
+            "unidades_paquete": product.unit_packaging
+        }
+        return product_data

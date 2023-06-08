@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime
 from database.database import Base, session
-from sqlalchemy import Column, Integer, String, ForeignKey, BigInteger, Float, Date
+from sqlalchemy import Column, Integer, ForeignKey, BigInteger, Date
 from sqlalchemy.orm import relationship
 import setting.logging as log
 from models.products import Products
@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 class Fridge(Base):
-    __tablename__ = 'fridge'
+    __tablename__ = "fridge"
     id = Column(Integer, primary_key=True, autoincrement=True)
     date_in = Column(Date, default=datetime.utcnow)
     date_out = Column(Date)
@@ -37,14 +37,11 @@ class Fridge(Base):
         """
 
         unit_actual = cls.initial_unit_fridge(product_added)
-        fridge_entry = Fridge(
-            product_id=product_added.id,
-            unit_actual=unit_actual
-        )
+        fridge_entry = Fridge(product_id=product_added.id, unit_actual=unit_actual)
 
         session.add(fridge_entry)
         session.commit()
-        session.close()
+        logger.info("Saved in fridge")
 
     @classmethod
     def initial_unit_fridge(cls, product_added) -> int:
@@ -56,9 +53,18 @@ class Fridge(Base):
         """
 
         # Obtengo las unidades del paquete y las unidades que hay en la nevera
-        unit_actual = session.query(Fridge.unit_actual).filter(Fridge.product_id == product_added.id).order_by(
-            Fridge.id.desc()).limit(1).scalar()
-        units_per_package = session.query(Products.unit_packaging).filter(Products.id == product_added.id).scalar()
+        unit_actual = (
+            session.query(Fridge.unit_actual)
+            .filter(Fridge.product_id == product_added.id)
+            .order_by(Fridge.id.desc())
+            .limit(1)
+            .scalar()
+        )
+        units_per_package = (
+            session.query(Products.unit_packaging)
+            .filter(Products.id == product_added.id)
+            .scalar()
+        )
         # Hago la operación de sumar a lo que hay en la nevera lo que añado
         if unit_actual is None:
             new_unit_actual = units_per_package
@@ -66,3 +72,20 @@ class Fridge(Base):
             new_unit_actual = unit_actual + units_per_package
 
         return new_unit_actual
+
+    @classmethod
+    def sow_products_in_fridge(cls):
+        all_products_in_fridge = session.query(Fridge).all()
+        products = []
+        for product_in_fridge in all_products_in_fridge:
+            name = session.query(Products.name).filter(Products.id == product_in_fridge.product_id).first()
+            date_in = product_in_fridge.date_in
+            unit_actual = product_in_fridge.unit_actual
+            if unit_actual != 0:
+                product_data = {
+                    "name": name[0],
+                    "unit_actual": unit_actual,
+                    "date_in": date_in.isoformat()
+                }
+                products.append(product_data)
+        return products

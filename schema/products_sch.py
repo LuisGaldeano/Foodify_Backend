@@ -11,3 +11,14 @@ class ProductsBase(BaseModel):
 
     class Config:
         orm_mode = True
+
+
+class NewProductSchema(BaseModel):
+    recurrent: bool
+    units: int
+
+
+class PrintShoppingList(BaseModel):
+    name: str
+    shop: str
+    price: float

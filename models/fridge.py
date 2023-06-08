@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 class Fridge(Base):
-    __tablename__ = 'fridge'
+    __tablename__ = "fridge"
     id = Column(Integer, primary_key=True, autoincrement=True)
     date_in = Column(Date, default=datetime.utcnow)
     date_out = Column(Date)
@@ -37,14 +37,11 @@ class Fridge(Base):
         """
 
         unit_actual = cls.initial_unit_fridge(product_added)
-        fridge_entry = Fridge(
-            product_id=product_added.id,
-            unit_actual=unit_actual
-        )
+        fridge_entry = Fridge(product_id=product_added.id, unit_actual=unit_actual)
 
-        session.add(product)
+        session.add(fridge_entry)
         session.commit()
-        session.close()
+        logger.info("Saved in fridge")
 
     @classmethod
     def initial_unit_fridge(cls, product_added) -> int:
@@ -56,9 +53,18 @@ class Fridge(Base):
         """
 
         # Obtengo las unidades del paquete y las unidades que hay en la nevera
-        unit_actual = session.query(Fridge.unit_actual).filter(Fridge.product_id == product_added.id).order_by(
-            Fridge.id.desc()).limit(1).scalar()
-        units_per_package = session.query(Products.unit_packaging).filter(Products.id == product_added.id).scalar()
+        unit_actual = (
+            session.query(Fridge.unit_actual)
+            .filter(Fridge.product_id == product_added.id)
+            .order_by(Fridge.id.desc())
+            .limit(1)
+            .scalar()
+        )
+        units_per_package = (
+            session.query(Products.unit_packaging)
+            .filter(Products.id == product_added.id)
+            .scalar()
+        )
         # Hago la operación de sumar a lo que hay en la nevera lo que añado
         if unit_actual is None:
             new_unit_actual = units_per_package

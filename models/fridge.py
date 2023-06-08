@@ -42,7 +42,7 @@ class Fridge(Base):
             unit_actual=unit_actual
         )
 
-        session.add(product)
+        session.add(fridge_entry)
         session.commit()
         session.close()
 

@@ -12,7 +12,7 @@ import time
 from bs4 import BeautifulSoup as bs
 import requests as req
 from selenium.webdriver.chrome.options import Options
-from models import Products, ProductSuperRelationship
+from models import ProductSuperRelationship
 
 log.configure_logging()
 logger = logging.getLogger(__name__)

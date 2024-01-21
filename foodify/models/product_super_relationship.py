@@ -16,7 +16,7 @@ class ProductSuperRelationship(Base):
     currency = Column(String(255))
     date = Column(Date, default=datetime.utcnow)
 
-    product_id = Column(Integer, ForeignKey("products.id"))
+    product_id = Column(Integer, ForeignKey("data.id"))
     products = relationship("Products", back_populates="productsuprel")
 
     super_id = Column(Integer, ForeignKey("supermarket.id"))

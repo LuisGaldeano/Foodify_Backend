@@ -1,8 +1,0 @@
-# Database parameters
-db_host = "Change"
-db_user = "Change"
-db_password = "Change"
-db_database = "Change"
-db_port = "Change"
-
-SQLALCHEMY_DATABASE_URL = f"postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_database}"

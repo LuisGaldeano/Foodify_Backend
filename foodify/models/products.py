@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 class Products(Base):
-    __tablename__ = "products"
+    __tablename__ = "data"
     id = Column(Integer, primary_key=True, autoincrement=True)
     ean = Column(BigInteger, index=True)
     name = Column(String(255), index=True)
@@ -21,13 +21,13 @@ class Products(Base):
     unit_packaging = Column(Integer)
 
     brand_id = Column(Integer, ForeignKey("brand.id"))
-    brands = relationship("Brands", back_populates="products")
+    brands = relationship("Brands", back_populates="data")
 
-    fridge = relationship("Fridge", back_populates="products")
+    fridge = relationship("Fridge", back_populates="data")
 
-    shoppinglists = relationship("ShoppingList", back_populates="products")
+    shoppinglists = relationship("ShoppingList", back_populates="data")
 
-    productsuprel = relationship("ProductSuperRelationship", back_populates="products")
+    productsuprel = relationship("ProductSuperRelationship", back_populates="data")
 
     def __str__(self):
         return f"id= {self.id} - name= {self.name} - ean= {self.ean}"

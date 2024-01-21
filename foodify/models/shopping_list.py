@@ -18,7 +18,7 @@ class ShoppingList(Base):  # Supermercado Día
     date_in = Column(Date, default=datetime.utcnow)
     date_buy = Column(Date)
 
-    product_id = Column(BigInteger, ForeignKey("data.id"))
+    product_id = Column(BigInteger, ForeignKey("products.id"))
     products = relationship("Products", back_populates="shoppinglists")
 
     super_id = Column(Integer, ForeignKey("supermarket.id"))

@@ -17,7 +17,7 @@ class Fridge(Base):
     date_out = Column(Date)
     unit_actual = Column(Integer)
 
-    product_id = Column(BigInteger, ForeignKey("data.id"))
+    product_id = Column(BigInteger, ForeignKey("products.id"))
     products = relationship("Products", back_populates="fridge")
 
     def __str__(self):

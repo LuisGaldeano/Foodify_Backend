@@ -1,4 +1,4 @@
-setting/setting.py
+foodify/setting/setting.py
 .idea
 .ipynb_checkpoints
 .vscode
@@ -6,5 +6,5 @@ __pycache__
 otros
 pruebas.py
 cookies
-doc/Tareas.md
+foodify/doc/Tareas.md
 dashboard

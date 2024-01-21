@@ -1,0 +1,12 @@
+repos:
+  - repo: https://github.com/psf/black  # Black
+    rev: 23.10.0
+    hooks:
+      - id: black
+        language_version: python3.11
+  - repo: https://github.com/charliermarsh/ruff-pre-commit  # Ruff
+    # Ruff version.
+    rev: 'v0.1.0'
+    hooks:
+      - id: ruff
+        args: [ --exit-non-zero-on-fix ]

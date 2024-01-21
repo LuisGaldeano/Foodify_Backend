@@ -1,4 +1,4 @@
-![Foodify](./img/Foodify_DarkGreen.png)  
+![Foodify](foodify/img/Foodify_DarkGreen.png)  
 
 # Foodify  
 ### Aplicación para ahorrar tiempo comprando de manera eficiente
@@ -44,7 +44,7 @@ Para poder usar Foodify correctamente es necesario contar con:
 ## Uso de Foodify
 Foodify se divide en cuatro partes con diferentes funcionalidades:
 
-![Foodify- Dashboard](./img/Foodify_Dashboard.png)  
+![Foodify- Dashboard](foodify/img/Foodify_Dashboard.png)  
 
 ### 1. **Dashboard:**
 La página principal de la aplicación, en donde se muestra todo lo que hay en la nevera y todo lo que se ha añadido a la lista de la compra.
@@ -56,7 +56,7 @@ En esta página también se muestran los diferentes botones que permiten moverse
     
    3. <u>Comprar:</u>  Redirecciona a la página en la que se muestra la lista de la compra con los productos que hemos consumido junto al precio más barato de los supermercados especificados y un enlace de compra.
     
-![Foodify - Añadir Producto](./img/Foodify_AddProduct.png)  
+![Foodify - Añadir Producto](foodify/img/Foodify_AddProduct.png)  
 
 ### 2. Añadir Producto:
 
@@ -66,7 +66,7 @@ En esta página es donde se realiza el registro de productos nuevos. Para ello, 
 
    * Recurrente:  Se han de marcar como recurrente los productos que una vez gastados se van a volver a comprar, mientras que para los productos que se compran de manera esporádica se ha de desmarcar esta opción para que una vez que se gasten no se envíen a la lista de la compra.
    
-![Foodify - Gastar Producto](./img/Foodify_SpendProduct.png)  
+![Foodify - Gastar Producto](foodify/img/Foodify_SpendProduct.png)  
 
 ### 3. Gastar Producto:
 
@@ -79,7 +79,7 @@ Todas las noches está programado una actualización de los precios de todos los
 
 Sin embargo, si fuera necesario actualizar los precios manualmente se puede realizar mediente el botón de "Actualizar Precios". Aunque hay que tener en cuenta que si la base de datos de productos es muy extensa, este proceso puede alargarse en el tiempo.
 
-![Foodify - Lista de la compra](./img/Foodify_ShoppingList.png)  
+![Foodify - Lista de la compra](foodify/img/Foodify_ShoppingList.png)  
 
 ### Lista de la compra:
 
@@ -91,7 +91,7 @@ De igual manera, si se desea descargar una lista de la compra en formato PDF, pu
 
 Este documento se guardará en la carpeta PDF de la ruta de la aplicación.
 
-![Foodify - Lista de la compra](../Foodify/img/Foodify_ShoppingList.png)
+![Foodify - Lista de la compra](foodify/img/Foodify_ShoppingList.png)
 
 ### Conclusión:
 

@@ -17,8 +17,11 @@ from models import ProductSuperRelationship
 log.configure_logging()
 logger = logging.getLogger(__name__)
 
-PATH = ChromeDriverManager().install()  # instala driver de chrome
-
+try:
+    PATH = ChromeDriverManager().install()
+except TypeError as e:
+    # Manejar la excepción, imprimir un mensaje de error o realizar otras acciones
+    print(f"Error al obtener la versión de ChromeDriver: {e}")
 
 class Supermarket(Base):  # Supermercado Día
     DIA, CARREFOUR, ALCAMPO = "dia", "carrefour", "alcampo"

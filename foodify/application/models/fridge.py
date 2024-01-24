@@ -1,13 +1,9 @@
-import logging
+from core.logging import logger
 from datetime import datetime
-from database.database import Base, session
+from application.database.database import Base, session
 from sqlalchemy import Column, Integer, ForeignKey, BigInteger, Date
 from sqlalchemy.orm import relationship
-import setting.logging as log
-from models.products import Products
-
-log.configure_logging()
-logger = logging.getLogger(__name__)
+from application.models.products import Products
 
 
 class Fridge(Base):

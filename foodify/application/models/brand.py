@@ -1,11 +1,7 @@
-import logging
+from core.logging import logger
 from sqlalchemy.orm import relationship
-import setting.logging as log
-from database.database import Base, session
+from application.database.database import Base, session
 from sqlalchemy import Column, Integer, String
-
-log.configure_logging()
-logger = logging.getLogger(__name__)
 
 
 class Brands(Base):

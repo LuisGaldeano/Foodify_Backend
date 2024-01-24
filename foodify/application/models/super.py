@@ -1,27 +1,31 @@
-import logging
 import os
-import setting.logging as log
+from core.logging import logger
 from sqlalchemy_utils import ChoiceType
-from database.database import Base, session
+from application.database.database import Base, session
 from sqlalchemy import Column, Integer, String
 from sqlalchemy.orm import relationship
 from selenium import webdriver
-from webdriver_manager.chrome import ChromeDriverManager
+from webdriver_manager.firefox import GeckoDriverManager
 from selenium.webdriver.common.by import By
+from selenium.webdriver import FirefoxOptions
 import time
 from bs4 import BeautifulSoup as bs
 import requests as req
-from selenium.webdriver.chrome.options import Options
-from models import ProductSuperRelationship
-
-log.configure_logging()
-logger = logging.getLogger(__name__)
+from selenium.webdriver.firefox.options import Options
+from application.models.product_super_relationship import ProductSuperRelationship
 
 try:
-    PATH = ChromeDriverManager().install()
-except TypeError as e:
-    # Manejar la excepción, imprimir un mensaje de error o realizar otras acciones
-    print(f"Error al obtener la versión de ChromeDriver: {e}")
+    PATH = GeckoDriverManager().install()
+    opts = FirefoxOptions()
+    opts.add_argument("--headless")
+    driver = webdriver.Firefox(options=opts)
+except Exception as e:
+    print(f"Error al obtener la versión de GeckoDriver: {e}")
+finally:
+    if 'driver' in locals():
+        logger.info("Removing driver")
+        driver.quit()
+
 
 class Supermarket(Base):  # Supermercado Día
     DIA, CARREFOUR, ALCAMPO = "dia", "carrefour", "alcampo"

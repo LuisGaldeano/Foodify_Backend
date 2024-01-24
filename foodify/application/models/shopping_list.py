@@ -1,15 +1,13 @@
-from database.database import Base, session
+from application.database.database import Base, session
 from sqlalchemy import Column, Integer, ForeignKey, BigInteger, func, Date
 from sqlalchemy.orm import relationship
 from datetime import datetime
-from models import ProductSuperRelationship, Products
-from models.super import Supermarket
-import setting.logging as log
-import logging
+from application.models.product_super_relationship import ProductSuperRelationship
+from application.models.products import Products
+from application.models.super import Supermarket
+from core.logging import logger
 from fpdf import FPDF
 
-log.configure_logging()
-logger = logging.getLogger(__name__)
 
 
 class ShoppingList(Base):  # Supermercado Día

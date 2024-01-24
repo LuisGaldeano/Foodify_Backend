@@ -53,6 +53,7 @@ services:
       - "5050:5050"
     volumes:
       - vol_foodify_pgadmin_data:/var/lib/pgadmin
+
 volumes:
   vol_logs_foodify:
     driver: local

@@ -1,13 +1,10 @@
 import logging
 from sqlalchemy.orm import relationship
-import setting.logging as log
-from database.database import Base, session
+from core.logging import logger
+from application.database.database import Base, session
 from sqlalchemy import Column, Integer, String, BigInteger, ForeignKey, Boolean
 import openfoodfacts as offs
-from models.brand import Brands
-
-log.configure_logging()
-logger = logging.getLogger(__name__)
+from application.models.brand import Brands
 
 
 class Products(Base):

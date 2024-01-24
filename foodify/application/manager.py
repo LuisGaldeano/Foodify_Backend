@@ -1,17 +1,16 @@
-import logging
 import os
+from core.logging import logger
 from datetime import datetime
-import setting.logging as log
 import cv2
 from pyzbar import pyzbar
-from database.database import session
-from models import Fridge, ShoppingList, ProductSuperRelationship
-from models.products import Products
-from models.super import Supermarket
+from application.database.database import session
+from application.models.fridge import Fridge
+from application.models.products import Products
+from application.models.shopping_list import ShoppingList
+from application.models.super import Supermarket
+from application.models.product_super_relationship import ProductSuperRelationship
 import pytz
-
-log.configure_logging()
-logger = logging.getLogger(__name__)
+from core.settings.app import AppSettings
 
 
 class FoodifyManager:
@@ -337,15 +336,13 @@ class FoodifyManager:
                 - No recibe ningún parámetro.
 
         """
-        # Inicia el manager
-        environment = os.getenv("ENVIRONMENT", None)
-        test_image_path = os.getenv("TEST_IMAGE_PATH", None)
-        logger.info(f"Init foodify manager for '{environment}' environment")
-        if (
-                environment and
-                environment == "test"
-        ):
+
+        environment = os.getenv("ENVIRONMENT")
+        if environment == "prod":
             self.recorder = None
         else:
             self.recorder = cv2.VideoCapture(0)
         logger.info('End loading camera')
+
+
+manager = FoodifyManager()

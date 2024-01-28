@@ -1,7 +1,7 @@
-from core.logging import logger
 from sqlalchemy import create_engine
-from sqlalchemy.orm import declarative_base, scoped_session
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import declarative_base, scoped_session, sessionmaker
+
+from core.logging import logger
 from core.settings.connection import SQLALCHEMY_DATABASE_URL
 
 engine = create_engine(SQLALCHEMY_DATABASE_URL)

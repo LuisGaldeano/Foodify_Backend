@@ -1,9 +1,9 @@
-from starlette.middleware.cors import CORSMiddleware
-from core.logging import logger
-from application.database.database import init_db
 from fastapi import FastAPI
-from core.config import get_app_settings
+from starlette.middleware.cors import CORSMiddleware
+from application.database.database import init_db
 from application.routes.api import router as api_router
+from core.config import get_app_settings
+from core.logging import logger
 
 
 def get_application() -> FastAPI:

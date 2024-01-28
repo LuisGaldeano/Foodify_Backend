@@ -1,10 +1,10 @@
-from application.models import Brands
-from application.schemas.products_sch import NewProductSchema
-from core.logging import logger
 from fastapi import APIRouter
 from application.database.database import session
-from application.models.products import Products
 from application.manager import manager
+from application.models import Brands
+from application.models.products import Products
+from application.schemas.products_sch import NewProductSchema
+from core.logging import logger
 
 router = APIRouter()
 
@@ -49,6 +49,7 @@ async def spend_products():
         }
         return product_data
     except Exception as ex:
+        logger.exception(f"Exception {ex}")
         return "No encontré ningún producto, enfoca mejor"
 
 

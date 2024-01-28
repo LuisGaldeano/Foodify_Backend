@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from application.routes import fridge, shoping_list, products, manager
+from application.routes import fridge, manager, products, shoping_list
 
 router = APIRouter()
 router.include_router(fridge.router, tags=["fridge"], prefix="/fridge")

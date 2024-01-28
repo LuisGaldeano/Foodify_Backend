@@ -1,7 +1,6 @@
 from fastapi import APIRouter
-
-from application.models.shopping_list import ShoppingList
 from application.manager import manager
+from application.models.shopping_list import ShoppingList
 
 router = APIRouter()
 

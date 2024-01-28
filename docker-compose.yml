@@ -5,6 +5,8 @@ services:
     hostname: foodify
     restart: always
     image: ${PROJECT_NAME}_image
+    devices:
+      - /dev/video0:/dev/video0
     build:
       context: .
       dockerfile: docker/Dockerfile

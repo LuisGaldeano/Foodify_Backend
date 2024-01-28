@@ -1,7 +1,7 @@
 from datetime import datetime
+from sqlalchemy import Column, Date, Float, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
 from application.database.database import Base, session
-from sqlalchemy import Column, Integer, String, ForeignKey, Date, Float
 
 
 class ProductSuperRelationship(Base):

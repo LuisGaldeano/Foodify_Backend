@@ -1,9 +1,10 @@
-from core.logging import logger
 from datetime import datetime
-from application.database.database import Base, session
-from sqlalchemy import Column, Integer, ForeignKey, BigInteger, Date
+from sqlalchemy import BigInteger, Column, Date, ForeignKey, Integer
 from sqlalchemy.orm import relationship
+from application.database.database import Base, session
+from application.models import Supermarket
 from application.models.products import Products
+from core.logging import logger
 
 
 class Fridge(Base):
@@ -23,54 +24,27 @@ class Fridge(Base):
         return f"<{str(self)}>"
 
     @classmethod
-    def fridge_save_product(cls, product_added):
-        """
-        Calcula las unidades que hay en la nevera de un producto,
-        le suma las unidades que tenga cada paquete y las guarda en DB
+    def save_fridge_product(cls, product_added: object) -> None:
+        try:
+            unit_actual = session.query(Fridge.unit_actual).filter(Fridge.product_id == product_added.id) \
+                .order_by(Fridge.id.desc()).limit(1).scalar()
+            units_per_package = session.query(Products.unit_packaging).filter(Products.id == product_added.id).scalar()
+            if unit_actual is None:
+                new_unit_actual = units_per_package
+            else:
+                new_unit_actual = unit_actual + units_per_package
 
-        :param product_added: Objeto de producto
-        :return: None
-        """
+            fridge_entry = Fridge(product_id=product_added.id, unit_actual=new_unit_actual)
 
-        unit_actual = cls.initial_unit_fridge(product_added)
-        fridge_entry = Fridge(product_id=product_added.id, unit_actual=unit_actual)
-
-        session.add(fridge_entry)
-        session.commit()
-        logger.info("Saved in fridge")
-
-    @classmethod
-    def initial_unit_fridge(cls, product_added) -> int:
-        """
-        Calcula el número actualizado de unidades en la nevera al agregar las unidades por paquete del producto dado.
-
-        :param producto_agregado: El objeto del producto que se agrega.
-        :return: El nuevo total de unidades en la nevera después de agregar las unidades por paquete.
-        """
-
-        # Obtengo las unidades del paquete y las unidades que hay en la nevera
-        unit_actual = (
-            session.query(Fridge.unit_actual)
-            .filter(Fridge.product_id == product_added.id)
-            .order_by(Fridge.id.desc())
-            .limit(1)
-            .scalar()
-        )
-        units_per_package = (
-            session.query(Products.unit_packaging)
-            .filter(Products.id == product_added.id)
-            .scalar()
-        )
-        # Hago la operación de sumar a lo que hay en la nevera lo que añado
-        if unit_actual is None:
-            new_unit_actual = units_per_package
-        else:
-            new_unit_actual = unit_actual + units_per_package
-
-        return new_unit_actual
+            session.add(fridge_entry)
+            session.commit()
+            logger.info("Saved in fridge")
+        except Exception as e:
+            session.rollback()
+            logger.info(f"The following exception occurred: {e}")
 
     @classmethod
-    def sow_products_in_fridge(cls):
+    def get_fridge_products(cls):
         all_products_in_fridge = session.query(Fridge).all()
         products = []
         for product_in_fridge in all_products_in_fridge:
@@ -85,3 +59,43 @@ class Fridge(Base):
                 }
                 products.append(product_data)
         return products
+
+    @classmethod
+    def update_fridge_products(cls, old_product_data: str, new_product_data: str) -> str:
+        """
+        Given the old product name and the new one, update the product's name
+        :param old_product_data: old supermarket name
+        :param new_product_data: new supermarket name
+        """
+        product_to_update = session.query(Products).filter(Products.name == old_product_data).first()
+        if product_to_update:
+            try:
+                product_to_update.name = new_product_data
+                session.commit()
+                return f"Supermarket '{old_product_data}' updated to '{new_product_data}' successfully."
+            except Exception as e:
+                session.rollback()
+                logger.info(f"The following exception occurred: {e}")
+                return f"Supermarket '{old_product_data}' has not been successfully updated."
+        else:
+            return f"Supermarket '{old_product_data}' not found."
+
+    @classmethod
+    def delete_fridge_product(cls, product_data: str) -> str:
+        """
+        Given a , fridge_product delete it from the database
+        :param supermarket_data: supermarket name
+        """
+        supermarket_to_delete = session.query(Supermarket).filter(Supermarket.name == supermarket_data).first()
+
+        if supermarket_to_delete:
+            try:
+                session.delete(supermarket_to_delete)
+                session.commit()
+                return f"Supermarket '{supermarket_data}' deleted successfully."
+            except Exception as e:
+                session.rollback()
+                logger.info(f"The following exception occurred: {e}")
+                return f"Supermarket '{supermarket_data}' has not been successfully deleted."
+        else:
+            return f"Supermarket '{supermarket_data}' not found."

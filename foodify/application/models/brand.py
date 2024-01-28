@@ -1,7 +1,7 @@
-from core.logging import logger
+from sqlalchemy import Column, Integer, String
 from sqlalchemy.orm import relationship
 from application.database.database import Base, session
-from sqlalchemy import Column, Integer, String
+from core.logging import logger
 
 
 class Brands(Base):
@@ -18,32 +18,74 @@ class Brands(Base):
         return f"<{str(self)}>"
 
     @classmethod
-    def offs_save_brand(cls, product_data: dict):
+    def get_brand(cls, brand_data: str) -> object:
         """
-        Dado un producto, revisa si la marca está ya guardada en BD
-            Si la marca está guardada devuelve el objeto de la marca
-            Si no está guardada, guarda el nombre de la marca en base de datos y devuelve el objeto de la marca
-        :param product_data: Producto
-        :return: Objeto marca del producto
+        Given a brand name, select it from the database
+        :param brand_data: brand name
+        :return: brand object
         """
-        existing_brand = cls.select_brand(product_data["brands"].upper().strip())
-        if not existing_brand:
-            brand = Brands(name=product_data["brands"].upper().strip())
-
-            session.add(brand)
-            session.commit()
-
-            return brand
-        elif existing_brand:
-            return existing_brand
+        selected_brand = session.query(Brands).filter(Brands.name == brand_data).first()
+        return selected_brand
 
     @classmethod
-    def select_brand(cls, brand: str):
+    def save_brand(cls, brand_data: str) -> object:
         """
-        Dado un id de una marca, hace una query para obtener el nombre de la marca y la devuelve
-        :param brand: Nombre de una marca
-        :return: Objeto de la marca
+        Given a brand, save it in the database
+        :param brand_data: brand name
+        :return: Brand object
         """
-        brand = session.query(Brands).filter(Brands.name == brand).first()
 
-        return brand
+        saved_brand = cls.get_brand(brand_data=brand_data)
+        if not saved_brand:
+            brand = Brands(name=brand_data)
+            try:
+                session.add(brand)
+                session.commit()
+                return brand
+            except Exception as e:
+                session.rollback()
+                logger.info(f"The following exception occurred: {e}")
+                return f"Brand '{brand_data}' has not been successfully saved."
+        elif saved_brand:
+            return saved_brand
+
+    @classmethod
+    def update_brand(cls, old_brand_data: str, new_brand_data: str) -> str:
+        """
+        Given the old brand name and the new one, update the brand's name
+        :param old_brand_data: old brand name
+        :param new_brand_data: new brand name
+        """
+        brand_to_update = session.query(Brands).filter(Brands.name == old_brand_data).first()
+
+        if brand_to_update:
+            try:
+                brand_to_update.name = new_brand_data
+                session.commit()
+                return f"Brand '{old_brand_data}' updated to '{new_brand_data}' successfully."
+            except Exception as e:
+                session.rollback()
+                logger.info(f"The following exception occurred: {e}")
+                return f"Brand '{old_brand_data}' has not been successfully updated."
+        else:
+            return f"Brand '{old_brand_data}' not found."
+
+    @classmethod
+    def delete_brand(cls, brand_data: str) -> str:
+        """
+        Given a brand, delete it from the database
+        :param brand_data: brand name
+        """
+        brand_to_delete = session.query(Brands).filter(Brands.name == brand_data).first()
+
+        if brand_to_delete:
+            try:
+                session.delete(brand_to_delete)
+                session.commit()
+                return f"Brand '{brand_data}' deleted successfully."
+            except Exception as e:
+                session.rollback()
+                logger.info(f"The following exception occurred: {e}")
+                return f"Brand '{brand_data}' has not been successfully deleted."
+        else:
+            return f"Brand '{brand_data}' not found."

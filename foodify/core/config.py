@@ -1,4 +1,5 @@
 from functools import lru_cache
+
 from core.settings.app import AppSettings
 
 

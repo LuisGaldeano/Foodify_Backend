@@ -1,5 +1,6 @@
 ### Project ###
 img/data/
+foodify/application/database/pg_selects.sql
 
 
 ### PyCharm / VSC ###

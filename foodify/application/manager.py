@@ -1,21 +1,21 @@
-import logging
 import os
 from datetime import datetime
-import setting.logging as log
-import cv2
-from pyzbar import pyzbar
-from database.database import session
-from models import Fridge, ShoppingList, ProductSuperRelationship
-from models.products import Products
-from models.super import Supermarket
-import pytz
 
-log.configure_logging()
-logger = logging.getLogger(__name__)
+import cv2
+import pytz
+from pyzbar import pyzbar
+
+from application.database.database import session
+from application.models.fridge import Fridge
+from application.models.product_super_relationship import \
+    ProductSuperRelationship
+from application.models.products import Products
+from application.models.shopping_list import ShoppingList
+from application.models.super import Supermarket
+from core.logging import logger
 
 
 class FoodifyManager:
-
     def add_product(self, barcode: str, recurrent: bool, units: int):
         """
             Agrega un producto a la nevera.
@@ -34,10 +34,10 @@ class FoodifyManager:
         product_added = Products.get_or_create_product(barcode=barcode, recurrent=recurrent, units=units)
 
         product_in_fridge = session.query(Fridge).filter(Fridge.product_id == product_added.id,
-                                                         Fridge.date_out == None).first()
+                                                         Fridge.date_out is None).first()
         if not product_in_fridge:
             # Añade al frigorífico
-            Fridge.fridge_save_product(product_added=product_added)
+            Fridge.save_fridge_product(product_added=product_added)
             info = f'El producto {product_added.name} se ha añadido a la nevera'
             logger.info(info)
             return product_added, info
@@ -46,7 +46,7 @@ class FoodifyManager:
             unit_packaging = session.query(Products.unit_packaging).filter(Products.id == product_added.id).first()
             new_unit_actual = unit_actual + unit_packaging[0]
             # Actualiza las unit_actual al nuevo valor actual
-            session.query(Fridge).filter(Fridge.product_id == product_added.id, Fridge.date_out == None) \
+            session.query(Fridge).filter(Fridge.product_id == product_added.id, Fridge.date_out is None) \
                 .update({Fridge.unit_actual: new_unit_actual})
 
             session.commit()
@@ -188,7 +188,7 @@ class FoodifyManager:
             :return: Diccionario que contiene los productos comprados y su información relacionada.
         """
         # Traigo todos los productos que están en la lista de la compra
-        buy_products = session.query(ShoppingList).filter(ShoppingList.date_buy == None).all()
+        buy_products = session.query(ShoppingList).filter(ShoppingList.date_buy is None).all()
 
         buy_list = {}
 
@@ -217,7 +217,7 @@ class FoodifyManager:
 
             # Añade al frigorifico
             product_added = session.query(Products).filter(Products.id == product.product_id).first()
-            Fridge.fridge_save_product(product_added)
+            Fridge.save_fridge_product(product_added)
 
         return buy_list
 
@@ -316,6 +316,7 @@ class FoodifyManager:
             _, frame = self.recorder.read()
         else:
             test_image_path = os.getenv("TEST_IMAGE_PATH")
+            logger.info(test_image_path)
             frame = cv2.imread(test_image_path)
         # Voltea el fotograma horizontalmente
         frame = cv2.flip(frame, 1)
@@ -337,15 +338,13 @@ class FoodifyManager:
                 - No recibe ningún parámetro.
 
         """
-        # Inicia el manager
-        environment = os.getenv("ENVIRONMENT", None)
-        test_image_path = os.getenv("TEST_IMAGE_PATH", None)
-        logger.info(f"Init foodify manager for '{environment}' environment")
-        if (
-                environment and
-                environment == "test"
-        ):
+
+        environment = os.getenv("ENVIRONMENT")
+        if environment == "dev":
             self.recorder = None
         else:
             self.recorder = cv2.VideoCapture(0)
         logger.info('End loading camera')
+
+
+manager = FoodifyManager()

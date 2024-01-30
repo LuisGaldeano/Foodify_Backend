@@ -1,12 +1,7 @@
-import logging
 from datetime import datetime
+from sqlalchemy import Column, Date, Float, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
-import setting.logging as log
-from database.database import Base, session
-from sqlalchemy import Column, Integer, String, ForeignKey, Date, Float
-
-log.configure_logging()
-logger = logging.getLogger(__name__)
+from application.database.database import Base, session
 
 
 class ProductSuperRelationship(Base):

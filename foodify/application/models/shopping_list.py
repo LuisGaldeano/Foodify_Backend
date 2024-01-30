@@ -1,15 +1,12 @@
-from database.database import Base, session
-from sqlalchemy import Column, Integer, ForeignKey, BigInteger, func, Date
-from sqlalchemy.orm import relationship
 from datetime import datetime
-from models import ProductSuperRelationship, Products
-from models.super import Supermarket
-import setting.logging as log
-import logging
 from fpdf import FPDF
-
-log.configure_logging()
-logger = logging.getLogger(__name__)
+from sqlalchemy import BigInteger, Column, Date, ForeignKey, Integer, func
+from sqlalchemy.orm import relationship
+from application.database.database import Base, session
+from application.models.product_super_relationship import ProductSuperRelationship
+from application.models.products import Products
+from application.models.super import Supermarket
+from core.logging import logger
 
 
 class ShoppingList(Base):  # Supermercado Día
@@ -191,7 +188,7 @@ class ShoppingList(Base):  # Supermercado Día
                        - "Precio": El precio del producto.
                        - "URL": El enlace de compra del producto.
             """
-        products = session.query(cls).filter(cls.date_buy == None).all()
+        products = session.query(cls).filter(cls.date_buy is None).all()
         shopping_list = []
 
         # Recorrer la lista de productos y agregarlos al PDF
@@ -227,7 +224,7 @@ class ShoppingList(Base):  # Supermercado Día
 
         :return: None
         """
-        products = session.query(cls).filter(cls.date_buy == None).all()
+        products = session.query(cls).filter(cls.date_buy is None).all()
 
         # Crear un objeto PDF
         pdf = FPDF()

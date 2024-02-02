@@ -68,7 +68,7 @@ filterwarnings = [
 relative_files = true
 
 [tool.ruff]
-line-length = 90
+line-length = 120
 exclude = [
     ".pytest_cache",
     "venv",

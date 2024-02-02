@@ -1,8 +1,7 @@
 from fastapi import APIRouter, Depends
 from application.auth.oauth_users import Oauth2
-from application.auth.oauth_schemas import oauth2_scheme
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from datetime import datetime, timedelta
+from fastapi.security import OAuth2PasswordRequestForm
+from datetime import timedelta
 
 from application.models import Users
 

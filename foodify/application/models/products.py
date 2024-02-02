@@ -36,7 +36,8 @@ class Products(Base):
         """
         Guarda un nuevo producto en la base de datos utilizando los datos proporcionados.
 
-        :param product_data: Un diccionario con los datos del producto, incluyendo el código, nombre, URL de imagen y nutriscore.
+        :param product_data: Un diccionario con los datos del producto, incluyendo el código, nombre,
+         URL de imagen y nutriscore.
         :param recurrent: Indica si el producto es recurrente (True) o no recurrente (False).
         :param units: El número de unidades por paquete del producto.
         :return: El objeto del producto guardado en la base de datos.

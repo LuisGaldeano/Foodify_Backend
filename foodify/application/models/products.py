@@ -1,13 +1,9 @@
-import logging
-from sqlalchemy.orm import relationship
-import setting.logging as log
-from database.database import Base, session
-from sqlalchemy import Column, Integer, String, BigInteger, ForeignKey, Boolean
 import openfoodfacts as offs
-from models.brand import Brands
-
-log.configure_logging()
-logger = logging.getLogger(__name__)
+from sqlalchemy import BigInteger, Boolean, Column, ForeignKey, Integer, String
+from sqlalchemy.orm import relationship
+from application.database.database import Base, session
+from application.models.brand import Brands
+from core.logging import logger
 
 
 class Products(Base):
@@ -40,13 +36,15 @@ class Products(Base):
         """
         Guarda un nuevo producto en la base de datos utilizando los datos proporcionados.
 
-        :param product_data: Un diccionario con los datos del producto, incluyendo el código, nombre, URL de imagen y nutriscore.
+        :param product_data: Un diccionario con los datos del producto, incluyendo el código, nombre,
+         URL de imagen y nutriscore.
         :param recurrent: Indica si el producto es recurrente (True) o no recurrente (False).
         :param units: El número de unidades por paquete del producto.
         :return: El objeto del producto guardado en la base de datos.
         """
 
-        brand = Brands.offs_save_brand(product_data)
+        brand_data = product_data["brands"].upper().strip()
+        brand = Brands.save_brand(brand_data=brand_data)
 
         product = Products(
             ean=product_data["code"],

@@ -1,27 +1,28 @@
-import logging
 import os
 from datetime import datetime
-import setting.logging as log
-import cv2
-from pyzbar import pyzbar
-from database.database import session
-from models import Fridge, ShoppingList, ProductSuperRelationship
-from models.products import Products
-from models.super import Supermarket
-import pytz
 
-log.configure_logging()
-logger = logging.getLogger(__name__)
+import cv2
+import pytz
+from pyzbar import pyzbar
+
+from application.database.database import session
+from application.models.fridge import Fridge
+from application.models.product_super_relationship import \
+    ProductSuperRelationship
+from application.models.products import Products
+from application.models.shopping_list import ShoppingList
+from application.models.super import Supermarket
+from core.logging import logger
 
 
 class FoodifyManager:
-
     def add_product(self, barcode: str, recurrent: bool, units: int):
         """
             Agrega un producto a la nevera.
 
             Si el producto ya está registrado, devuelve el objeto del producto con el código de barras dado.
-            Si el producto no está registrado, lo descarga de Open Food Facts, lo registra y devuelve el objeto del producto registrado.
+            Si el producto no está registrado, lo descarga de Open Food Facts, lo registra y devuelve el objeto
+            del producto registrado.
 
             :param barcode: El código de barras del producto.
             :param recurrent: Indica si el producto es recurrente o no.
@@ -34,10 +35,10 @@ class FoodifyManager:
         product_added = Products.get_or_create_product(barcode=barcode, recurrent=recurrent, units=units)
 
         product_in_fridge = session.query(Fridge).filter(Fridge.product_id == product_added.id,
-                                                         Fridge.date_out == None).first()
+                                                         Fridge.date_out is None).first()
         if not product_in_fridge:
             # Añade al frigorífico
-            Fridge.fridge_save_product(product_added=product_added)
+            Fridge.save_fridge_product(product_added=product_added)
             info = f'El producto {product_added.name} se ha añadido a la nevera'
             logger.info(info)
             return product_added, info
@@ -46,7 +47,7 @@ class FoodifyManager:
             unit_packaging = session.query(Products.unit_packaging).filter(Products.id == product_added.id).first()
             new_unit_actual = unit_actual + unit_packaging[0]
             # Actualiza las unit_actual al nuevo valor actual
-            session.query(Fridge).filter(Fridge.product_id == product_added.id, Fridge.date_out == None) \
+            session.query(Fridge).filter(Fridge.product_id == product_added.id, Fridge.date_out is None) \
                 .update({Fridge.unit_actual: new_unit_actual})
 
             session.commit()
@@ -59,7 +60,8 @@ class FoodifyManager:
         """
             Agrega el supermercado por primera vez para un producto.
 
-            Busca si el producto ya existe en la tabla de relaciones entre producto y supermercado para descargar el precio.
+            Busca si el producto ya existe en la tabla de relaciones entre producto y supermercado para descargar el
+            precio.
             Si no existe ninguna relación, descarga los precios del producto de los supermercados disponibles.
 
             :param product_added: El objeto del producto agregado.
@@ -119,9 +121,10 @@ class FoodifyManager:
         """
             Verifica el estado actual de un producto en el frigorífico a partir del código de barras utilizado.
 
-            Busca el producto correspondiente al código de barras en la base de datos y obtiene su estado actual en el frigorífico.
-            Actualiza el estado del producto en caso de que se haya gastado una unidad y devuelve el objeto del producto y la
-            información relacionada.
+            Busca el producto correspondiente al código de barras en la base de datos y obtiene su estado actual en
+            el frigorífico.
+            Actualiza el estado del producto en caso de que se haya gastado una unidad y devuelve el objeto del
+            producto y la información relacionada.
 
             :param barcode_to_use: Código de barras utilizado para identificar el producto.
             :return: Tupla que contiene el objeto del producto y la información relacionada.
@@ -178,17 +181,17 @@ class FoodifyManager:
         """
             Realiza la compra de los productos que están en la lista de la compra.
 
-            Obtiene todos los productos que están en la lista de la compra y realiza las acciones necesarias para comprar cada uno
-            de ellos. Para cada producto, obtiene su nombre, el nombre del supermercado y el precio actual del producto en ese
-            supermercado.
+            Obtiene todos los productos que están en la lista de la compra y realiza las acciones necesarias para
+            comprar cada uno de ellos. Para cada producto, obtiene su nombre, el nombre del supermercado y el precio
+            actual del producto en ese supermercado.
             Luego, actualiza la fecha de compra del producto en la lista de la compra y lo agrega al frigorífico.
-            Finalmente, devuelve un diccionario que contiene los nombres de los productos como claves y una tupla que contiene el
-            nombre del supermercado y el precio como valor.
+            Finalmente, devuelve un diccionario que contiene los nombres de los productos como claves y una tupla
+            que contiene el nombre del supermercado y el precio como valor.
 
             :return: Diccionario que contiene los productos comprados y su información relacionada.
         """
         # Traigo todos los productos que están en la lista de la compra
-        buy_products = session.query(ShoppingList).filter(ShoppingList.date_buy == None).all()
+        buy_products = session.query(ShoppingList).filter(ShoppingList.date_buy is None).all()
 
         buy_list = {}
 
@@ -217,7 +220,7 @@ class FoodifyManager:
 
             # Añade al frigorifico
             product_added = session.query(Products).filter(Products.id == product.product_id).first()
-            Fridge.fridge_save_product(product_added)
+            Fridge.save_fridge_product(product_added)
 
         return buy_list
 
@@ -225,10 +228,12 @@ class FoodifyManager:
         """
             Actualiza los precios de los productos.
 
-            Obtiene todos los productos de la base de datos y, dependiendo del valor de "night_update" y la hora actual, realiza
-            la extracción de precios de los supermercados para cada producto.
-            Si "night_update" es True y la hora actual es 1 de la mañana, se realiza la extracción de precios para todos los productos.
-            Si "night_update" es False, se realiza la extracción de precios para todos los productos sin importar la hora actual.
+            Obtiene todos los productos de la base de datos y, dependiendo del valor de "night_update" y la hora actual,
+            realiza la extracción de precios de los supermercados para cada producto.
+            Si "night_update" es True y la hora actual es 1 de la mañana, se realiza la extracción de precios para
+            todos los productos.
+            Si "night_update" es False, se realiza la extracción de precios para todos los productos sin importar
+            la hora actual.
 
             :param night_update: Indica si se debe realizar una actualización nocturna.
         """
@@ -248,8 +253,9 @@ class FoodifyManager:
         """
             Marca el código de barras en el fotograma y le añade un rectángulo.
 
-            Esta función toma un fotograma "frame" y un código de barras "barcode" como entrada y marca el código de barras en el
-            fotograma agregando un rectángulo alrededor de él. También muestra el código de barras como texto en el fotograma.
+            Esta función toma un fotograma "frame" y un código de barras "barcode" como entrada y marca el código
+            de barras en el fotograma agregando un rectángulo alrededor de él. También muestra el código de
+            barras como texto en el fotograma.
 
             :param frame: El fotograma en el que se encuentra el código de barras.
             :param barcode: El código de barras que se va a marcar.
@@ -264,8 +270,8 @@ class FoodifyManager:
         """
             Marca los códigos de barras detectados en el fotograma.
 
-            Esta función toma un fotograma "frame" y una lista de códigos de barras detectados "detected_barcodes" como entrada,
-            y marca cada código de barras en el fotograma agregando un rectángulo alrededor de él.
+            Esta función toma un fotograma "frame" y una lista de códigos de barras detectados "detected_barcodes"
+            como entrada, y marca cada código de barras en el fotograma agregando un rectángulo alrededor de él.
             Utiliza la función "print_rectangle" para marcar cada código de barras individualmente.
 
             :param frame: El fotograma en el que se encuentran los códigos de barras.
@@ -283,9 +289,9 @@ class FoodifyManager:
         """
             Detecta y marca los códigos de barras en un fotograma.
 
-            Esta función toma un fotograma "frame" y una lista de códigos de barras detectados "detected_barcodes" como entrada,
-            y marca los códigos de barras en el fotograma si se detectan. Utiliza la función "print_rectangles" para marcar los
-            códigos de barras detectados.
+            Esta función toma un fotograma "frame" y una lista de códigos de barras detectados "detected_barcodes"
+            como entrada, y marca los códigos de barras en el fotograma si se detectan. Utiliza la función
+            "print_rectangles" para marcar los códigos de barras detectados.
 
             :param frame: El fotograma en el que se desea detectar los códigos de barras.
             :param detected_barcodes: La lista de códigos de barras detectados.
@@ -303,8 +309,8 @@ class FoodifyManager:
             Captura una imagen y obtiene los códigos de barras detectados.
 
             Esta función captura un fotograma de la cámara o carga una imagen de prueba desde una ruta especificada.
-            Luego, voltea el fotograma horizontalmente y utiliza la biblioteca pyzbar para detectar los códigos de barras en
-            el fotograma.
+            Luego, voltea el fotograma horizontalmente y utiliza la biblioteca pyzbar para detectar los códigos
+            de barras en el fotograma.
             Llama a la función "detect_barcode" para marcar los códigos de barras detectados en el fotograma.
 
             :return: Una tupla que contiene los códigos de barras detectados.
@@ -316,6 +322,7 @@ class FoodifyManager:
             _, frame = self.recorder.read()
         else:
             test_image_path = os.getenv("TEST_IMAGE_PATH")
+            logger.info(test_image_path)
             frame = cv2.imread(test_image_path)
         # Voltea el fotograma horizontalmente
         frame = cv2.flip(frame, 1)
@@ -337,15 +344,13 @@ class FoodifyManager:
                 - No recibe ningún parámetro.
 
         """
-        # Inicia el manager
-        environment = os.getenv("ENVIRONMENT", None)
-        test_image_path = os.getenv("TEST_IMAGE_PATH", None)
-        logger.info(f"Init foodify manager for '{environment}' environment")
-        if (
-                environment and
-                environment == "test"
-        ):
+
+        environment = os.getenv("ENVIRONMENT")
+        if environment == "dev":
             self.recorder = None
         else:
             self.recorder = cv2.VideoCapture(0)
         logger.info('End loading camera')
+
+
+manager = FoodifyManager()

@@ -2,7 +2,9 @@
 FROM python:3.11
 
 # Install tools needed for translations
-RUN apt-get update && apt-get install -y wget make gettext ffmpeg libsm6 libxext6 zbar-tools && apt-get clean
+RUN apt-get update && apt-get install -y wget make gettext bzip2 ffmpeg libsm6 libxext6 libxtst6 libgtk-3-0  \
+    libx11-xcb-dev libdbus-glib-1-2 libxt6 libpci-dev zbar-tools && apt-get clean
+
 RUN apt-get autoclean
 
 # Prepare work directory

@@ -86,16 +86,16 @@ class Fridge(Base):
         Given a , fridge_product delete it from the database
         :param supermarket_data: supermarket name
         """
-        supermarket_to_delete = session.query(Supermarket).filter(Supermarket.name == supermarket_data).first()
+        product_to_delete = session.query(Supermarket).filter(Supermarket.name == product_data).first()
 
-        if supermarket_to_delete:
+        if product_to_delete:
             try:
-                session.delete(supermarket_to_delete)
+                session.delete(product_to_delete)
                 session.commit()
-                return f"Supermarket '{supermarket_data}' deleted successfully."
+                return f"Supermarket '{product_data}' deleted successfully."
             except Exception as e:
                 session.rollback()
                 logger.info(f"The following exception occurred: {e}")
-                return f"Supermarket '{supermarket_data}' has not been successfully deleted."
+                return f"Supermarket '{product_data}' has not been successfully deleted."
         else:
-            return f"Supermarket '{supermarket_data}' not found."
+            return f"Supermarket '{product_data}' not found."

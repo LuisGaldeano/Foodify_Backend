@@ -121,7 +121,8 @@ class Supermarket(Base):  # Supermercado Día
     @classmethod
     def extract_prices_supermarkets(cls, ean, product_added):
         """
-            Extrae los precios de los supermercados disponibles mediante web scraping para un determinado código EAN de producto.
+            Extrae los precios de los supermercados disponibles mediante web scraping
+            para un determinado código EAN de producto.
 
             :param ean: El código EAN del producto.
             :param product_added: El producto agregado a la lista.

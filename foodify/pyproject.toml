@@ -30,7 +30,11 @@ apscheduler = "^3.10.1"
 starlette = "^0.27.0"
 fpdf = "^1.7.2"
 psycopg2-binary = "^2.9.6"
-pydantic = "^2.3.0"
+pydantic = {extras = ["email"], version = "^2.6.0"}
+autopep8 = "^2.0.4"
+python-multipart = "^0.0.6"
+python-jose = {extras = ["cryptography"], version = "^3.3.0"}
+passlib = {extras = ["bcrypt"], version = "^1.7.4"}
 
 
 [tool.poetry.group.dev.dependencies]
@@ -64,7 +68,7 @@ filterwarnings = [
 relative_files = true
 
 [tool.ruff]
-line-length = 90
+line-length = 120
 exclude = [
     ".pytest_cache",
     "venv",

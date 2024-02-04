@@ -25,7 +25,8 @@ class Brands(Base):
         :return: brand object
         """
         selected_brand = session.query(Brands).filter(Brands.name == brand_data).first()
-        return selected_brand
+        if selected_brand:
+            return selected_brand
 
     @classmethod
     def save_brand(cls, brand_data: str) -> object:

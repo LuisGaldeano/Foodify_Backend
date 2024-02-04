@@ -1,4 +1,5 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
+from application.auth.oauth_errors import http_error_handler
 from starlette.middleware.cors import CORSMiddleware
 from application.database.database import init_db
 from application.routes.api import router as api_router
@@ -23,6 +24,8 @@ def get_application() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    application.add_exception_handler(HTTPException, http_error_handler)
 
     application.include_router(api_router, prefix=settings.api_prefix)
 

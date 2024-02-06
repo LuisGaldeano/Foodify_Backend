@@ -5,7 +5,7 @@ from sqlalchemy import Column, Integer, String, Boolean
 from starlette import status
 from application.auth.oauth_schemas import oauth2_scheme
 from application.auth.oauth_users import Oauth2
-from application.database.database import Base, session
+from application.database.database import Base, db_dependency
 from application.schemas.user import User
 from resources import strings
 
@@ -27,14 +27,14 @@ class Users(Base):
         return f"<{str(self)}>"
 
     @classmethod
-    def get_user(cls, username: str) -> object:
-        user = session.query(Users).filter(Users.username == username).first()
+    def get_user(cls, db, username: str) -> object:
+        user = db.query(Users).filter(Users.username == username).first()
         if user:
             return user
         return None
 
     @classmethod
-    def save_new_user(cls, user_create):
+    def save_new_user(cls, db, user_create):
         try:
             hashed_password = Oauth2.generate_password(plane_password=user_create)
             db_user = Users(
@@ -44,27 +44,27 @@ class Users(Base):
                 email=user_create.email,
                 hashed_password=hashed_password,
                 disabled=user_create.disabled)
-            session.add(db_user)
-            session.commit()
-            session.refresh(db_user)
+            db.add(db_user)
+            db.commit()
+            db.refresh(db_user)
             return db_user
         except Exception as ex:
             raise ex
 
     @classmethod
-    def change_disabled_user(cls, username: str) -> object:
-        user = session.query(Users).filter(Users.username == username).first()
+    def change_disabled_user(cls, db, username: str) -> object:
+        user = db.query(Users).filter(Users.username == username).first()
         if user:
             try:
                 user.disabled = not user.disabled
-                session.commit()
+                db.commit()
             except Exception as e:
                 raise e
             return user
         return None
 
     @staticmethod
-    def get_user_current(token: str = Depends(oauth2_scheme)):
+    def get_user_current(db: db_dependency = db_dependency, token: str = Depends(oauth2_scheme)):
         try:
             token_decode = jwt.decode(token=token, key=os.getenv("SECRET_KEY"), algorithms=[os.getenv("ALGORYTHM")])
             username = token_decode.get("sub")
@@ -74,7 +74,7 @@ class Users(Base):
         except JWTError:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                                 detail=strings.INVALID_CREDENTIALS)
-        user = Users.get_user(username=username)
+        user = Users.get_user(username=username, db=db)
         if not user:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                                 detail=strings.USER_DOES_NOT_EXIST_ERROR)
@@ -88,12 +88,12 @@ class Users(Base):
         return user
 
     @classmethod
-    def authenticate_user(cls, username: str, password: str):
-        user = Users.get_user(username=username)
+    def authenticate_user(cls, db, username: str, password: str):
+        user = Users.get_user(username=username, db=db)
         if not user:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-                                    detail=strings.USER_DOES_NOT_EXIST_ERROR)
+                                detail=strings.USER_DOES_NOT_EXIST_ERROR)
         if not Oauth2.verify_password(plain_password=password, hashed_password=user.hashed_password):
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-                                    detail=strings.INCORRECT_LOGIN_INPUT)
+                                detail=strings.INCORRECT_LOGIN_INPUT)
         return user

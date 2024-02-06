@@ -10,21 +10,22 @@ from sqlalchemy import Column, Integer, String
 from sqlalchemy.orm import relationship
 from sqlalchemy_utils import ChoiceType
 from webdriver_manager.firefox import GeckoDriverManager
-from application.database.database import Base, session
+from application.database.database import Base
 from application.models.product_super_relationship import ProductSuperRelationship
 from core.logging import logger
 
-try:
-    PATH = GeckoDriverManager().install()
-    opts = FirefoxOptions()
-    opts.add_argument("--headless")
-    driver = webdriver.Firefox(options=opts)
-except Exception as e:
-    print(f"Error al obtener la versión de GeckoDriver: {e}")
-finally:
-    if 'driver' in locals():
-        logger.info("Removing driver")
-        driver.quit()
+def download_path():
+    try:
+        PATH = GeckoDriverManager().install()
+        opts = FirefoxOptions()
+        opts.add_argument("--headless")
+        driver = webdriver.Firefox(options=opts)
+    except Exception as e:
+        print(f"Error al obtener la versión de GeckoDriver: {e}")
+    finally:
+        if 'driver' in locals():
+            logger.info("Removing driver")
+            driver.quit()
 
 
 class Supermarket(Base):  # Supermercado Día
@@ -51,12 +52,12 @@ class Supermarket(Base):  # Supermercado Día
         return f"<{str(self)}>"
 
     @classmethod
-    def get_supermarket(cls, super_data: str) -> object:
-        supermarket = session.query(Supermarket).filter_by(name=super_data).first()
+    def get_supermarket(cls, db, super_data: str) -> object:
+        supermarket = db.query(Supermarket).filter_by(name=super_data).first()
         return supermarket
 
     @classmethod
-    def save_supermarket(cls, super_data: str, url_scrapper: str, url_cart: str) -> object:
+    def save_supermarket(cls, db, super_data: str, url_scrapper: str, url_cart: str) -> object:
         """
         Given a super, save it in the database
         :param super_data: super name
@@ -64,62 +65,62 @@ class Supermarket(Base):  # Supermercado Día
         :param url_cart: supermarket's cart url
         :return: supermarket object
         """
-        saved_supermarket = cls.get_supermarket(super_data=super_data)
+        saved_supermarket = cls.get_supermarket(super_data=super_data, db=db)
         if not saved_supermarket:
             supermarket = Supermarket(name=super_data, url_scrapper=url_scrapper, url_chart=url_cart)
             try:
-                session.add(supermarket)
-                session.commit()
+                db.add(supermarket)
+                db.commit()
                 return supermarket
             except Exception as e:
-                session.rollback()
+                db.rollback()
                 logger.info(f"The following exception occurred: {e}")
                 return f"Supermarket '{super_data}' has not been successfully saved."
         elif saved_supermarket:
             return saved_supermarket
 
     @classmethod
-    def update_supermarket(cls, old_supermarket_data: str, new_supermarket_data: str) -> str:
+    def update_supermarket(cls, db, old_supermarket_data: str, new_supermarket_data: str) -> str:
         """
         Given the old supermarket name and the new one, update the supermarket's name
         :param old_supermarket_data: old supermarket name
         :param new_supermarket_data: new supermarket name
         """
-        supermarket_to_update = session.query(Supermarket).filter(Supermarket.name == old_supermarket_data).first()
+        supermarket_to_update = db.query(Supermarket).filter(Supermarket.name == old_supermarket_data).first()
         if supermarket_to_update:
             try:
                 supermarket_to_update.name = new_supermarket_data
-                session.commit()
+                db.commit()
                 return f"Supermarket '{old_supermarket_data}' updated to '{new_supermarket_data}' successfully."
             except Exception as e:
-                session.rollback()
+                db.rollback()
                 logger.info(f"The following exception occurred: {e}")
                 return f"Supermarket '{old_supermarket_data}' has not been successfully updated."
         else:
             return f"Supermarket '{old_supermarket_data}' not found."
 
     @classmethod
-    def delete_supermarket(cls, supermarket_data: str) -> str:
+    def delete_supermarket(cls, db, supermarket_data: str) -> str:
         """
         Given a supermarket, delete it from the database
         :param supermarket_data: supermarket name
         """
-        supermarket_to_delete = session.query(Supermarket).filter(Supermarket.name == supermarket_data).first()
+        supermarket_to_delete = db.query(Supermarket).filter(Supermarket.name == supermarket_data).first()
 
         if supermarket_to_delete:
             try:
-                session.delete(supermarket_to_delete)
-                session.commit()
+                db.delete(supermarket_to_delete)
+                db.commit()
                 return f"Supermarket '{supermarket_data}' deleted successfully."
             except Exception as e:
-                session.rollback()
+                db.rollback()
                 logger.info(f"The following exception occurred: {e}")
                 return f"Supermarket '{supermarket_data}' has not been successfully deleted."
         else:
             return f"Supermarket '{supermarket_data}' not found."
 
     @classmethod
-    def extract_prices_supermarkets(cls, ean, product_added):
+    def extract_prices_supermarkets(cls, db, ean, product_added):
         """
             Extrae los precios de los supermercados disponibles mediante web scraping
             para un determinado código EAN de producto.
@@ -134,7 +135,7 @@ class Supermarket(Base):  # Supermercado Día
                 # Get or create super and return a super object
                 url_dia = os.getenv("DIA_URL")
                 url_chart_dia = os.getenv("DIA_URL_CHART")
-                super_market_dia = cls.save_supermarket(super_data=cls.DIA, url_scrapper=url_dia,
+                super_market_dia = cls.save_supermarket(db=db,super_data=cls.DIA, url_scrapper=url_dia,
                                                         url_cart=url_chart_dia)
 
                 # Intenta descargar los precios mediante web strapping
@@ -153,7 +154,7 @@ class Supermarket(Base):  # Supermercado Día
                 url_carrefour = os.getenv("CARREFOUR_URL")
                 url_chart_carrefour = os.getenv("CARREFOUR_URL_CHART")
                 super_market_carrefour = cls.save_supermarket(
-                    super_data=cls.CARREFOUR, url_scrapper=url_carrefour, url_cart=url_chart_carrefour
+                    db=db, super_data=cls.CARREFOUR, url_scrapper=url_carrefour, url_cart=url_chart_carrefour
                 )
 
                 try:
@@ -171,7 +172,7 @@ class Supermarket(Base):  # Supermercado Día
                 url_alcampo = os.getenv("ALCAMPO_URL")
                 url_chart_alcampo = os.getenv("ALCAMPO_URL_CHART")
                 super_market_alcampo = cls.save_supermarket(
-                    super_data=cls.ALCAMPO, url_scrapper=url_alcampo, url_cart=url_chart_alcampo
+                    db=db, super_data=cls.ALCAMPO, url_scrapper=url_alcampo, url_cart=url_chart_alcampo
                 )
 
                 try:

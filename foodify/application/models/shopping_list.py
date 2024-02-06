@@ -2,7 +2,7 @@ from datetime import datetime
 from fpdf import FPDF
 from sqlalchemy import BigInteger, Column, Date, ForeignKey, Integer, func
 from sqlalchemy.orm import relationship
-from application.database.database import Base, session
+from application.database.database import Base
 from application.models.product_super_relationship import ProductSuperRelationship
 from application.models.products import Products
 from application.models.super import Supermarket
@@ -28,18 +28,19 @@ class ShoppingList(Base):  # Supermercado Día
         return f"<{str(self)}>"
 
     @classmethod
-    def send_to_shopping_list(cls, product_fridge):
+    def send_to_shopping_list(cls, db, product_fridge):
         """
         Agrega un producto a la lista de compras a partir de la información de la nevera.
             subquery: Realiza un filtro por el id del producto para la fecha más actual en la que hay precios
             query: Filtra por producto y por la fecha máxima para obtener un objeto de la relación
 
+        :param db:
         :param product_fridge: El objeto del producto en la nevera.
         :return: None
         """
         # Obtengo la última fecha
         subquery = (
-            session.query(func.max(ProductSuperRelationship.date).label("max_date"))
+            db.query(func.max(ProductSuperRelationship.date).label("max_date"))
             .filter(ProductSuperRelationship.product_id == product_fridge.product_id)
             .group_by(ProductSuperRelationship.product_id)
             .subquery()
@@ -47,7 +48,7 @@ class ShoppingList(Base):  # Supermercado Día
 
         # Realizar la consulta principal para obtener el resultado final
         prod_super_relation = (
-            session.query(ProductSuperRelationship)
+            db.query(ProductSuperRelationship)
             .filter(
                 ProductSuperRelationship.product_id == product_fridge.product_id,
                 ProductSuperRelationship.date == subquery.c.max_date,
@@ -60,11 +61,11 @@ class ShoppingList(Base):  # Supermercado Día
             product_id=product_fridge.product_id, super_id=prod_super_relation.super_id
         )
 
-        session.add(shopping_list_product)
-        session.commit()
+        db.add(shopping_list_product)
+        db.commit()
 
     @classmethod
-    def update_shopping_list(cls):
+    def update_shopping_list(cls, db):
         """
         Actualiza la lista de compras con los productos y precios más baratos disponibles en los supermercados.
             Si todos los productos tienen registro en ProductSuperRelation actualiza
@@ -73,14 +74,14 @@ class ShoppingList(Base):  # Supermercado Día
 
         :return: None
         """
-        products = session.query(Products).all()
+        products = db.query(Products).all()
 
         for product in products:
             super_list = []
 
             # Busco si existe el producto en la tabla de relación de producto-supermercado para descargar el precio
             relation = (
-                session.query(ProductSuperRelationship.super_id)
+                db.query(ProductSuperRelationship.super_id)
                 .filter(ProductSuperRelationship.product_id == product.id)
                 .all()
             )
@@ -91,15 +92,15 @@ class ShoppingList(Base):  # Supermercado Día
             if not super_list:
                 # Download prices for first time
                 ean = (
-                    session.query(Products.ean).filter(Products.id == product.id).first()
+                    db.query(Products.ean).filter(Products.id == product.id).first()
                 )
-                Supermarket.extract_prices_supermarkets(ean=ean, product_added=product)
+                Supermarket.extract_prices_supermarkets(ean=ean, product_added=product, db=db)
 
             if super_list:
 
                 # Obtengo la última fecha
                 subquery = (
-                    session.query(
+                    db.query(
                         func.max(ProductSuperRelationship.date).label("max_date")
                     )
                     .filter(ProductSuperRelationship.product_id == product.id)
@@ -109,7 +110,7 @@ class ShoppingList(Base):  # Supermercado Día
 
                 # Realizar la consulta principal para obtener el resultado final
                 min_price_super = (
-                    session.query(ProductSuperRelationship)
+                    db.query(ProductSuperRelationship)
                     .filter(
                         ProductSuperRelationship.product_id == product.id,
                         ProductSuperRelationship.date == subquery.c.max_date,
@@ -121,25 +122,26 @@ class ShoppingList(Base):  # Supermercado Día
                 logger.info("Todos los precios coinciden")
 
                 super_id = (
-                    session.query(ShoppingList.super_id)
+                    db.query(ShoppingList.super_id)
                     .filter(ShoppingList.product_id == product.id)
                     .first()
                 )
 
                 if min_price_super.super_id != super_id:
-                    session.query(ShoppingList).filter(
+                    db.query(ShoppingList).filter(
                         ShoppingList.product_id == min_price_super.product_id
                     ).update({ShoppingList.super_id: min_price_super.super_id})
 
-                    session.commit()
+                    db.commit()
 
                     logger.info("Actualiza la tabla y la añade a mostrar")
 
     @classmethod
-    def sow_products_in_shopping_list(cls):
+    def sow_products_in_shopping_list(cls, db):
         """
             Actualiza la lista de compras y recopila los productos en la lista.
 
+            :param db:
             :param cls: Classmethod de ShoppingList.
             :return: Una lista de diccionarios que contienen los detalles de los productos en la lista de compras.
                      Cada diccionario tiene las siguientes claves:
@@ -150,16 +152,16 @@ class ShoppingList(Base):  # Supermercado Día
                        - "currency": La moneda en la que se muestra el precio.
             """
 
-        cls.update_shopping_list()
-        all_products_in_shopping_list = session.query(ShoppingList).all()
+        cls.update_shopping_list(db=db)
+        all_products_in_shopping_list = db.query(ShoppingList).all()
         products = []
         for product_in_shopping_list in all_products_in_shopping_list:
-            name = session.query(Products.name).filter(Products.id == product_in_shopping_list.product_id).first()
-            supermarket = session.query(Supermarket.name).filter(
+            name = db.query(Products.name).filter(Products.id == product_in_shopping_list.product_id).first()
+            supermarket = db.query(Supermarket.name).filter(
                 Supermarket.id == product_in_shopping_list.super_id).first()
             date_in = product_in_shopping_list.date_in
             date_buy = product_in_shopping_list.date_buy
-            price = session.query(ProductSuperRelationship) \
+            price = db.query(ProductSuperRelationship) \
                 .filter(ProductSuperRelationship.product_id == product_in_shopping_list.product_id,
                         ProductSuperRelationship.super_id == product_in_shopping_list.super_id).first()
 
@@ -175,7 +177,7 @@ class ShoppingList(Base):  # Supermercado Día
         return products
 
     @classmethod
-    def create_buy_links(cls):
+    def create_buy_links(cls, db):
         """
             Crea enlaces de compra para los productos de la lista de la compra.
 
@@ -188,20 +190,20 @@ class ShoppingList(Base):  # Supermercado Día
                        - "Precio": El precio del producto.
                        - "URL": El enlace de compra del producto.
             """
-        products = session.query(cls).filter(cls.date_buy is None).all()
+        products = db.query(cls).filter(cls.date_buy is None).all()
         shopping_list = []
 
         # Recorrer la lista de productos y agregarlos al PDF
         for i, product in enumerate(products):
-            producto = session.query(Products).filter(Products.id == product.product_id).first()
-            supermarket = session.query(Supermarket.name).filter(Supermarket.id == product.super_id).first()
+            producto = db.query(Products).filter(Products.id == product.product_id).first()
+            supermarket = db.query(Supermarket.name).filter(Supermarket.id == product.super_id).first()
 
-            price = session.query(ProductSuperRelationship.price) \
+            price = db.query(ProductSuperRelationship.price) \
                 .filter(ProductSuperRelationship.super_id == product.super_id,
                         ProductSuperRelationship.product_id == product.product_id) \
                 .order_by(ProductSuperRelationship.date).first()
 
-            url_super = session.query(Supermarket.url_scrapper).filter(Supermarket.id == product.super_id).first()
+            url_super = db.query(Supermarket.url_scrapper).filter(Supermarket.id == product.super_id).first()
             url = f"{url_super[0]}{producto.ean}"
 
             product_json = {
@@ -218,13 +220,13 @@ class ShoppingList(Base):  # Supermercado Día
         return shopping_list
 
     @classmethod
-    def create_pdf(cls):
+    def create_pdf(cls, db):
         """
         Crea un archivo PDF con los detalles de los productos en la lista de la compra.
 
         :return: None
         """
-        products = session.query(cls).filter(cls.date_buy is None).all()
+        products = db.query(cls).filter(cls.date_buy is None).all()
 
         # Crear un objeto PDF
         pdf = FPDF()
@@ -239,15 +241,15 @@ class ShoppingList(Base):  # Supermercado Día
 
         # Recorrer la lista de productos y agregarlos al PDF
         for i, product in enumerate(products):
-            producto = session.query(Products).filter(Products.id == product.product_id).first()
-            supermarket = session.query(Supermarket.name).filter(Supermarket.id == product.super_id).first()
+            producto = db.query(Products).filter(Products.id == product.product_id).first()
+            supermarket = db.query(Supermarket.name).filter(Supermarket.id == product.super_id).first()
 
-            price = session.query(ProductSuperRelationship.price) \
+            price = db.query(ProductSuperRelationship.price) \
                 .filter(ProductSuperRelationship.super_id == product.super_id,
                         ProductSuperRelationship.product_id == product.product_id) \
                 .order_by(ProductSuperRelationship.date).first()
 
-            url_super = session.query(Supermarket.url_scrapper).filter(Supermarket.id == product.super_id).first()
+            url_super = db.query(Supermarket.url_scrapper).filter(Supermarket.id == product.super_id).first()
             url = f"{url_super[0]}{producto.ean}"
 
             # Agregar los datos al PDF

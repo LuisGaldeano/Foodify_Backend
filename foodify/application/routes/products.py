@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from application.database.database import session
+from application.database.database import db_dependency
 from application.manager import manager
 from application.models import Brands
 from application.models.products import Products
@@ -10,19 +10,20 @@ router = APIRouter()
 
 
 @router.get("/products")
-async def read_all_products():
-    products = session.query(Products).all()
+async def read_all_products(db: db_dependency):
+    products = db.query(Products).all()
     return products
 
 
 @router.post("/add_product")
-async def add_product_endpoint(product: NewProductSchema):
+async def add_product_endpoint(db: db_dependency, product: NewProductSchema):
     try:
         detected_barcodes = manager.capture_image_and_get_barcodes()
         product_added, info = manager.new_product(
             detected_barcodes=detected_barcodes,
             units=product.units,
             recurrent=product.recurrent,
+            db=db
         )
 
         return info
@@ -32,11 +33,11 @@ async def add_product_endpoint(product: NewProductSchema):
 
 
 @router.get("/spend_product")
-async def spend_products():
+async def spend_products(db: db_dependency):
     try:
         detected_barcodes = manager.capture_image_and_get_barcodes()
-        spend_product, info = manager.old_product(detected_barcodes=detected_barcodes)
-        brand = session.query(Brands).filter(Brands.id == spend_product.brand_id).first()
+        spend_product, info = manager.old_product(detected_barcodes=detected_barcodes, db=db)
+        brand = db.query(Brands).filter(Brands.id == spend_product.brand_id).first()
 
         product_data = {
             "ean": spend_product.ean,
@@ -54,7 +55,7 @@ async def spend_products():
 
 
 @router.get('/product_added')
-async def product_added():
-    last_product_added = Products.last_product_added()
+async def product_added(db: db_dependency):
+    last_product_added = Products.last_product_added(db=db)
     logger.info('Hace el envío')
     return last_product_added

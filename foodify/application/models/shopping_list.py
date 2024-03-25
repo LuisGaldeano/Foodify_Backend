@@ -1,7 +1,9 @@
 from datetime import datetime
+
 from fpdf import FPDF
 from sqlalchemy import BigInteger, Column, Date, ForeignKey, Integer, func
 from sqlalchemy.orm import relationship
+
 from application.database.database import Base
 from application.models.product_super_relationship import ProductSuperRelationship
 from application.models.products import Products
@@ -91,18 +93,15 @@ class ShoppingList(Base):  # Supermercado Día
 
             if not super_list:
                 # Download prices for first time
-                ean = (
-                    db.query(Products.ean).filter(Products.id == product.id).first()
+                ean = db.query(Products.ean).filter(Products.id == product.id).first()
+                Supermarket.extract_prices_supermarkets(
+                    ean=ean, product_added=product, db=db
                 )
-                Supermarket.extract_prices_supermarkets(ean=ean, product_added=product, db=db)
 
             if super_list:
-
                 # Obtengo la última fecha
                 subquery = (
-                    db.query(
-                        func.max(ProductSuperRelationship.date).label("max_date")
-                    )
+                    db.query(func.max(ProductSuperRelationship.date).label("max_date"))
                     .filter(ProductSuperRelationship.product_id == product.id)
                     .group_by(ProductSuperRelationship.product_id)
                     .subquery()
@@ -139,31 +138,45 @@ class ShoppingList(Base):  # Supermercado Día
     @classmethod
     def sow_products_in_shopping_list(cls, db):
         """
-            Actualiza la lista de compras y recopila los productos en la lista.
+        Actualiza la lista de compras y recopila los productos en la lista.
 
-            :param db:
-            :param cls: Classmethod de ShoppingList.
-            :return: Una lista de diccionarios que contienen los detalles de los productos en la lista de compras.
-                     Cada diccionario tiene las siguientes claves:
-                       - "name": El nombre del producto.
-                       - "date_in": La fecha en que se agregó el producto a la lista en formato ISO.
-                       - "super": El nombre del supermercado donde se puede encontrar el producto.
-                       - "price": El precio del producto.
-                       - "currency": La moneda en la que se muestra el precio.
-            """
+        :param db:
+        :param cls: Classmethod de ShoppingList.
+        :return: Una lista de diccionarios que contienen los detalles de los productos en la lista de compras.
+                 Cada diccionario tiene las siguientes claves:
+                   - "name": El nombre del producto.
+                   - "date_in": La fecha en que se agregó el producto a la lista en formato ISO.
+                   - "super": El nombre del supermercado donde se puede encontrar el producto.
+                   - "price": El precio del producto.
+                   - "currency": La moneda en la que se muestra el precio.
+        """
 
         cls.update_shopping_list(db=db)
         all_products_in_shopping_list = db.query(ShoppingList).all()
         products = []
         for product_in_shopping_list in all_products_in_shopping_list:
-            name = db.query(Products.name).filter(Products.id == product_in_shopping_list.product_id).first()
-            supermarket = db.query(Supermarket.name).filter(
-                Supermarket.id == product_in_shopping_list.super_id).first()
+            name = (
+                db.query(Products.name)
+                .filter(Products.id == product_in_shopping_list.product_id)
+                .first()
+            )
+            supermarket = (
+                db.query(Supermarket.name)
+                .filter(Supermarket.id == product_in_shopping_list.super_id)
+                .first()
+            )
             date_in = product_in_shopping_list.date_in
             date_buy = product_in_shopping_list.date_buy
-            price = db.query(ProductSuperRelationship) \
-                .filter(ProductSuperRelationship.product_id == product_in_shopping_list.product_id,
-                        ProductSuperRelationship.super_id == product_in_shopping_list.super_id).first()
+            price = (
+                db.query(ProductSuperRelationship)
+                .filter(
+                    ProductSuperRelationship.product_id
+                    == product_in_shopping_list.product_id,
+                    ProductSuperRelationship.super_id
+                    == product_in_shopping_list.super_id,
+                )
+                .first()
+            )
 
             if not date_buy:
                 product_data = {
@@ -171,7 +184,7 @@ class ShoppingList(Base):  # Supermercado Día
                     "date_in": date_in.isoformat(),
                     "super": supermarket[0].value,
                     "price": price.price,
-                    "currency": price.currency
+                    "currency": price.currency,
                 }
                 products.append(product_data)
         return products
@@ -179,31 +192,46 @@ class ShoppingList(Base):  # Supermercado Día
     @classmethod
     def create_buy_links(cls, db):
         """
-            Crea enlaces de compra para los productos de la lista de la compra.
+        Crea enlaces de compra para los productos de la lista de la compra.
 
-            :return: Una lista de json que contienen los detalles de los productos con enlaces de compra.
-                     Cada json tiene las siguientes claves:
-                       - "id": El identificador numérico del producto.
-                       - "Producto": Una cadena que indica el número de producto en la lista.
-                       - "Nombre": El nombre del producto.
-                       - "Supermercado": El nombre del supermercado donde se puede encontrar el producto.
-                       - "Precio": El precio del producto.
-                       - "URL": El enlace de compra del producto.
-            """
+        :return: Una lista de json que contienen los detalles de los productos con enlaces de compra.
+                 Cada json tiene las siguientes claves:
+                   - "id": El identificador numérico del producto.
+                   - "Producto": Una cadena que indica el número de producto en la lista.
+                   - "Nombre": El nombre del producto.
+                   - "Supermercado": El nombre del supermercado donde se puede encontrar el producto.
+                   - "Precio": El precio del producto.
+                   - "URL": El enlace de compra del producto.
+        """
         products = db.query(cls).filter(cls.date_buy is None).all()
         shopping_list = []
 
         # Recorrer la lista de productos y agregarlos al PDF
         for i, product in enumerate(products):
-            producto = db.query(Products).filter(Products.id == product.product_id).first()
-            supermarket = db.query(Supermarket.name).filter(Supermarket.id == product.super_id).first()
+            producto = (
+                db.query(Products).filter(Products.id == product.product_id).first()
+            )
+            supermarket = (
+                db.query(Supermarket.name)
+                .filter(Supermarket.id == product.super_id)
+                .first()
+            )
 
-            price = db.query(ProductSuperRelationship.price) \
-                .filter(ProductSuperRelationship.super_id == product.super_id,
-                        ProductSuperRelationship.product_id == product.product_id) \
-                .order_by(ProductSuperRelationship.date).first()
+            price = (
+                db.query(ProductSuperRelationship.price)
+                .filter(
+                    ProductSuperRelationship.super_id == product.super_id,
+                    ProductSuperRelationship.product_id == product.product_id,
+                )
+                .order_by(ProductSuperRelationship.date)
+                .first()
+            )
 
-            url_super = db.query(Supermarket.url_scrapper).filter(Supermarket.id == product.super_id).first()
+            url_super = (
+                db.query(Supermarket.url_scrapper)
+                .filter(Supermarket.id == product.super_id)
+                .first()
+            )
             url = f"{url_super[0]}{producto.ean}"
 
             product_json = {
@@ -212,7 +240,7 @@ class ShoppingList(Base):  # Supermercado Día
                 "Nombre": producto.name,
                 "Supermercado": supermarket[0].value,
                 "Precio": price[0],
-                "URL": url
+                "URL": url,
             }
 
             shopping_list.append(product_json)
@@ -235,29 +263,48 @@ class ShoppingList(Base):  # Supermercado Día
         pdf.add_page()
 
         # Establecer la fuente y el tamaño de la fuente
-        pdf.set_font('Arial', size=12)
+        pdf.set_font("Arial", size=12)
 
         date = datetime.utcnow().date()
 
         # Recorrer la lista de productos y agregarlos al PDF
         for i, product in enumerate(products):
-            producto = db.query(Products).filter(Products.id == product.product_id).first()
-            supermarket = db.query(Supermarket.name).filter(Supermarket.id == product.super_id).first()
+            producto = (
+                db.query(Products).filter(Products.id == product.product_id).first()
+            )
+            supermarket = (
+                db.query(Supermarket.name)
+                .filter(Supermarket.id == product.super_id)
+                .first()
+            )
 
-            price = db.query(ProductSuperRelationship.price) \
-                .filter(ProductSuperRelationship.super_id == product.super_id,
-                        ProductSuperRelationship.product_id == product.product_id) \
-                .order_by(ProductSuperRelationship.date).first()
+            price = (
+                db.query(ProductSuperRelationship.price)
+                .filter(
+                    ProductSuperRelationship.super_id == product.super_id,
+                    ProductSuperRelationship.product_id == product.product_id,
+                )
+                .order_by(ProductSuperRelationship.date)
+                .first()
+            )
 
-            url_super = db.query(Supermarket.url_scrapper).filter(Supermarket.id == product.super_id).first()
+            url_super = (
+                db.query(Supermarket.url_scrapper)
+                .filter(Supermarket.id == product.super_id)
+                .first()
+            )
             url = f"{url_super[0]}{producto.ean}"
 
             # Agregar los datos al PDF
             pdf.cell(0, 10, f"Producto {i + 1}:", ln=True)
-            pdf.cell(0, 5, f"Nombre: {producto.name}, Supermercado: {supermarket[0].value}, Precio: {price[0]} Euros",
-                     ln=True)
+            pdf.cell(
+                0,
+                5,
+                f"Nombre: {producto.name}, Supermercado: {supermarket[0].value}, Precio: {price[0]} Euros",
+                ln=True,
+            )
             pdf.cell(0, 5, f"URL: {url}", ln=True)
             pdf.cell(0, 10, "", ln=True)
 
         # Guardar el archivo PDF
-        pdf.output(f'./pdf/{date}-ListaCompra.pdf')
+        pdf.output(f"./pdf/{date}-ListaCompra.pdf")

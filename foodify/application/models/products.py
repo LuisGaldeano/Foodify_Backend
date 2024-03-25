@@ -1,6 +1,7 @@
 import openfoodfacts as offs
 from sqlalchemy import BigInteger, Boolean, Column, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
+
 from application.database.database import Base
 from application.models.brand import Brands
 from core.logging import logger
@@ -96,16 +97,16 @@ class Products(Base):
     @classmethod
     def last_product_added(cls, db):
         """
-            Obtiene los detalles del último producto agregado a través de su identificador.
+        Obtiene los detalles del último producto agregado a través de su identificador.
 
-            :return: Un diccionario con los siguientes detalles del producto:
-                     - "ean": El código EAN del producto.
-                     - "nombre": El nombre del producto.
-                     - "marca": El nombre de la marca del producto.
-                     - "nutriscore": El nutriscore del producto.
-                     - "recurrente": Indicador booleano que muestra si el producto es recurrente.
-                     - "unidades_paquete": El número de unidades en el empaque del producto.
-            """
+        :return: Un diccionario con los siguientes detalles del producto:
+                 - "ean": El código EAN del producto.
+                 - "nombre": El nombre del producto.
+                 - "marca": El nombre de la marca del producto.
+                 - "nutriscore": El nutriscore del producto.
+                 - "recurrente": Indicador booleano que muestra si el producto es recurrente.
+                 - "unidades_paquete": El número de unidades en el empaque del producto.
+        """
         product = db.query(Products).order_by((Products.id.desc())).first()
         brand = db.query(Brands).filter(Brands.id == product.brand_id).first()
         product_data = {
@@ -114,6 +115,6 @@ class Products(Base):
             "marca": brand.name,
             "nutriscore": product.nutriscore,
             "recurrente": product.recurrent,
-            "unidades_paquete": product.unit_packaging
+            "unidades_paquete": product.unit_packaging,
         }
         return product_data

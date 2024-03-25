@@ -1,12 +1,13 @@
 from fastapi import APIRouter
-from application.manager import manager
+
 from application.database.database import db_dependency
+from application.manager import manager
 from application.models.shopping_list import ShoppingList
 
 router = APIRouter()
 
 
-@router.get('/shopping_list')
+@router.get("/shopping_list")
 async def shopping_list(db: db_dependency):
     products_in_shopping_list = ShoppingList.sow_products_in_shopping_list(db=db)
     return products_in_shopping_list

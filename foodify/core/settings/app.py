@@ -5,7 +5,7 @@ from pydantic.v1 import BaseSettings
 
 
 class AppSettings(BaseSettings):
-    app_env: str = os.getenv("ENVIRONMENT")
+    app_env: str = os.getenv("ENVIRONMENT", "local")
     debug: bool = False
     docs_url: str = "/docs"
     openapi_prefix: str = ""
@@ -15,7 +15,7 @@ class AppSettings(BaseSettings):
     description: str = "API to register food"
     version: str = "0.1.0"
 
-    allowed_hosts: List[str] = ["*"]  # TODO Tienes que cambiar esto para que te permita coger las variables del .env
+    allowed_hosts: List[str] = os.getenv("ALLOWED_HOSTS", "*").split()
 
     api_prefix: str = "/api"
 

@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Integer, String
 from sqlalchemy.orm import relationship
+
 from application.database.database import Base
 from core.logging import logger
 
@@ -18,7 +19,7 @@ class Brands(Base):
         return f"<{str(self)}>"
 
     @classmethod
-    def get_brand(cls,db, brand_data: str) -> object:
+    def get_brand(cls, db, brand_data: str) -> object:
         """
         Given a brand name, select it from the database
         :param brand_data: brand name

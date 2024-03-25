@@ -1,6 +1,8 @@
 from datetime import datetime
+
 from sqlalchemy import Column, Date, Float, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
+
 from application.database.database import Base
 
 
@@ -24,7 +26,9 @@ class ProductSuperRelationship(Base):
         return f"<{str(self)}>"
 
     @classmethod
-    def save_new_relation(cls, db, price_num: float, currency: str, super_id: int, product):
+    def save_new_relation(
+        cls, db, price_num: float, currency: str, super_id: int, product
+    ):
         """
         Guarda una nueva relación entre un supermercado y un producto con el precio especificado.
 

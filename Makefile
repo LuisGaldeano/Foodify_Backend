@@ -60,7 +60,7 @@ pylint:
 linters: ruff pylint
 
 black:
-	$s docker exec ${PROJECT_NAME} black .
+	$s docker exec ${PROJECT_NAME} black . --config pyproject.toml
 
 isort:
 	$s docker exec ${PROJECT_NAME} isort .
